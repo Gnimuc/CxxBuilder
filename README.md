@@ -13,11 +13,8 @@ This is an experimental repo for exploring how to upgrade Cxx.jl's building syst
 ```
 CxxBuilder +
            | libcxxffi
-           | Product
            | patches
            | build_tarballs.jl
-           | .gitignore
-           | .travis.yml
            | README.md
            + JuliaBinary +
                          | juliabin +
@@ -33,4 +30,4 @@ CxxBuilder +
                   | LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz
 ```
 8. Run `julia --color=yes build_tarballs.jl --verbose`
-9. Find the binary in the `Product` folder
+9. Find the binary in the `products` folder
