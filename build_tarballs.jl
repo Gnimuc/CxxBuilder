@@ -108,16 +108,24 @@ cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/build/clang-6.0.1/lib/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
+
+if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
+    mkdir -p ${prefix}/mingw/include
+    mkdir -p ${prefix}/mingw/sys-root/include
+    cp -r /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/include/* ${prefix}/mingw/include/
+    cp -r /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/* ${prefix}/mingw/sys-root/include/
+fi
+
 """
 
 platforms = [
         # BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+        # BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.MacOS(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        #BinaryProvider.Windows(:i686),
-        #BinaryProvider.Windows(:x86_64)
+        # BinaryProvider.Windows(:i686),
+        # BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7))
     ]
 
 # The products that we will ensure are always built
