@@ -1396,16 +1396,27 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             clang::vfs::getRealFileSystem()));
         llvm::IntrusiveRefCntPtr<clang::vfs::InMemoryFileSystem> IMFS(
           new clang::vfs::InMemoryFileSystem);
+#ifdef _WIN32
+        IMFS->addFile("C:/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
+          StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
+        ));
+#else
         IMFS->addFile("/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
           StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
         ));
+#endif
+
         Overlay->pushOverlay(IMFS);
         Cxx->CI->setVirtualFileSystem(Overlay);
     }
     Cxx->CI->createFileManager();
     Cxx->CI->createSourceManager(Cxx->CI->getFileManager());
     if (PCHBuffer) {
-        Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
+#ifdef _WIN32
+    Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "C:/Cxx.pch";
+#else
+    Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
+#endif
     }
     Cxx->CI->createPreprocessor(clang::TU_Prefix);
     Cxx->CI->createASTContext();
@@ -1435,9 +1446,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
                         Cxx->CI->getPreprocessor(), OutputFile, nullptr,
                         Cxx->CI->getHeaderSearchOpts().Sysroot,
                         Buffer,
-#ifdef LLVM38
                         Cxx->CI->getFrontendOpts().ModuleFileExtensions,
-#endif
                         true);
       std::vector<std::unique_ptr<clang::ASTConsumer>> Consumers;
       Consumers.push_back(std::unique_ptr<clang::ASTConsumer>(Cxx->JCodeGen));
@@ -1453,7 +1462,11 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             Cxx->CI->getASTConsumer().GetASTDeserializationListener();
         bool DeleteDeserialListener = false;
         Cxx->CI->createPCHExternalASTSource(
+#ifdef _WIN32
+          "C:/Cxx.pch",
+#else
           "/Cxx.pch",
+#endif
           Cxx->CI->getPreprocessorOpts().DisablePCHValidation,
           Cxx->CI->getPreprocessorOpts().AllowPCHWithCompilerErrors, DeserialListener,
           DeleteDeserialListener);
@@ -1475,8 +1488,11 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     pp.enableIncrementalProcessing();
 
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
+#ifdef _WIN32
+    const char *fname = PCHBuffer ? "C:/Cxx.cpp" : "C:/Cxx.h";
+#else
     const char *fname = PCHBuffer ? "/Cxx.cpp" : "/Cxx.h";
-
+#endif
     const clang::FileEntry *MainFile = Cxx->CI->getFileManager().getVirtualFile(fname, 0, time(0));
     sm.overrideFileContents(MainFile, llvm::MemoryBuffer::getNewMemBuffer(0, fname));
     sm.setMainFileID(sm.createFileID(MainFile, clang::SourceLocation(), clang::SrcMgr::C_User));
@@ -1640,7 +1656,7 @@ JL_DLLEXPORT void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *state)
     // Hack: MaybeBindToTemporary can cause this to be
     // set if the allocated type has a constructor.
     // For now, ignore.
-    Cxx->CI->getSema().ExprNeedsCleanups = false;
+    // Cxx->CI->getSema().ExprNeedsCleanups = false;
 
     cur_module = state->module;
     cur_func = state->func;

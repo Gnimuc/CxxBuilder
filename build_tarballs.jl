@@ -116,6 +116,13 @@ if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
     cp -r /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/* ${prefix}/mingw/sys-root/include/
 fi
 
+if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 32 ]]; then
+    mkdir -p ${prefix}/mingw/include
+    mkdir -p ${prefix}/mingw/sys-root/include
+    cp -r /opt/i686-w64-mingw32/i686-w64-mingw32/include/* ${prefix}/mingw/include/
+    cp -r /opt/i686-w64-mingw32/i686-w64-mingw32/sys-root/include/* ${prefix}/mingw/sys-root/include/
+fi
+
 """
 
 platforms = [
@@ -124,8 +131,8 @@ platforms = [
         # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.MacOS(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Windows(:i686),
-        # BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7))
+        # BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
+        BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7))
     ]
 
 # The products that we will ensure are always built
