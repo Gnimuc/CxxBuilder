@@ -107,6 +107,7 @@ cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/build/clang-6.0.1/lib/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
+make -f GenerateConstants.Makefile
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
