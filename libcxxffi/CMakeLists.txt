@@ -59,7 +59,7 @@ link_directories(${CLANG_LIB_DIRS} ${JULIA_LIB_DIRS})
 add_library(${CXXJL_TARGET} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap.cpp)
 
 target_include_directories(${CXXJL_TARGET} PUBLIC ${CLANG_INCLUDE_DIRS} ${CLANG_SOURCE_INCLUDE_DIRS} ${JULIA_INCLUDE_DIRS} ${JULIA_SOURCE_INCLUDE_DIRS})
-target_compile_options(${CXXJL_TARGET} PUBLIC -DLLVM_NDEBUG -fno-rtti)
+target_compile_options(${CXXJL_TARGET} PUBLIC -DLLVM_NDEBUG -DLIBRARY_EXPORTS -fno-rtti)
 
 set(CLANG_LIBS clangFrontendTool
 	       			 clangBasic

@@ -107,7 +107,8 @@ cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/build/clang-6.0.1/lib/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
-make -f GenerateConstants.Makefile
+cd $WORKSPACE/srcdir
+make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir/LLVMBinary BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
@@ -128,12 +129,12 @@ fi
 
 platforms = [
         # BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+        BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.MacOS(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
-        BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7))
+        # BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7))
     ]
 
 # The products that we will ensure are always built
