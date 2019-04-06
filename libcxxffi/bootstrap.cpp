@@ -2909,16 +2909,15 @@ JL_DLLEXPORT void InsertIntoShadowModule(CxxInstance *Cxx, llvm::Function *F)
   NewF->copyAttributesFrom(F);
 }
 
-extern void *jl_pchar_to_string(const char *str, size_t len);
-JL_DLLEXPORT void *getTypeName(CxxInstance *Cxx, void *Ty)
-{
-  SmallString<256> OutName;
-  llvm::raw_svector_ostream Out(OutName);
-  Cxx->CGM->getCXXABI().
+JL_DLLEXPORT void getTypeName(CxxInstance *Cxx, void *Ty, char *name, int *length) {
+    SmallString<256> OutName;
+    llvm::raw_svector_ostream Out(OutName);
+    Cxx->CGM->getCXXABI().
     getMangleContext().mangleCXXRTTIName(clang::QualType::getFromOpaquePtr(Ty), Out);
-  StringRef Name = OutName.str();
-  StringRef ActualName = Name.substr(4);
-  return jl_pchar_to_string(ActualName.data(), ActualName.size());
+    StringRef Name = OutName.str();
+    StringRef ActualName = Name.substr(4);
+    *length = ActualName.size();
+    strcpy(name, ActualName.data());
 }
 
 
