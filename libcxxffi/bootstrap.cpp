@@ -12,24 +12,47 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 
-#include <iostream>
+#if defined(_WIN32) || defined(_WIN64)
+#define _OS_WINDOWS_
+#endif
 
-#ifdef _WIN32
+#if defined(_CPU_X86_64_)
+#  define _P64
+#elif defined(_CPU_X86_)
+#  define _P32
+#elif defined(_OS_WINDOWS_)
+/* Not sure how to determine pointer size on Windows running ARM. */
+#  if _WIN64
+#    define _P64
+#  else
+#    define _P32
+#  endif
+#elif __SIZEOF_POINTER__ == 8
+#    define _P64
+#elif __SIZEOF_POINTER__ == 4
+#    define _P32
+#else
+#  error pointer size not known for your platform / compiler
+#endif
+
+#ifdef _OS_WINDOWS_
+#define STDCALL __stdcall
+# ifdef LIBRARY_EXPORTS
+#  define JL_DLLEXPORT __declspec(dllexport)
+# else
+#  define JL_DLLEXPORT __declspec(dllimport)
+# endif
+#else
+#define STDCALL
+#define JL_DLLEXPORT __attribute__ ((visibility("default")))
+#endif
+
+#include <iostream>
+#include <cstdlib>
+#ifdef _OS_WINDOWS_
 #include <windows.h>
 #else
 #include <dlfcn.h>
-#endif
-
-#include <cstdlib>
-
-#ifdef NDEBUG
-#define OLD_NDEBUG
-#endif
-
-#ifdef LLVM_NDEBUG
-#define NDEBUG 1
-#else
-#undef NDEBUG
 #endif
 
 #include "llvm/Config/llvm-config.h"
@@ -95,22 +118,6 @@
 #include <CodeGen/CodeGenFunction.h>
 #undef private
 #include "CodeGen/CGCXXABI.h"
-
-#ifdef _OS_WINDOWS_
-#define STDCALL __stdcall
-# ifdef LIBRARY_EXPORTS
-#  define JL_DLLEXPORT __declspec(dllexport)
-# else
-#  define JL_DLLEXPORT __declspec(dllimport)
-# endif
-#else
-#define STDCALL
-#define JL_DLLEXPORT __attribute__ ((visibility("default")))
-#endif
-
-#ifndef OLD_NDEBUG
-#undef NDEBUG
-#endif
 
 // From julia
 using namespace llvm;
@@ -1396,7 +1403,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             clang::vfs::getRealFileSystem()));
         llvm::IntrusiveRefCntPtr<clang::vfs::InMemoryFileSystem> IMFS(
           new clang::vfs::InMemoryFileSystem);
-#ifdef _WIN32
+#ifdef _OS_WINDOWS_
         IMFS->addFile("C:/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
           StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
         ));
@@ -1412,7 +1419,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     Cxx->CI->createFileManager();
     Cxx->CI->createSourceManager(Cxx->CI->getFileManager());
     if (PCHBuffer) {
-#ifdef _WIN32
+#ifdef _OS_WINDOWS_
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "C:/Cxx.pch";
 #else
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
@@ -1462,7 +1469,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             Cxx->CI->getASTConsumer().GetASTDeserializationListener();
         bool DeleteDeserialListener = false;
         Cxx->CI->createPCHExternalASTSource(
-#ifdef _WIN32
+#ifdef _OS_WINDOWS_
           "C:/Cxx.pch",
 #else
           "/Cxx.pch",
@@ -1488,7 +1495,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     pp.enableIncrementalProcessing();
 
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
-#ifdef _WIN32
+#ifdef _OS_WINDOWS_
     const char *fname = PCHBuffer ? "C:/Cxx.cpp" : "C:/Cxx.h";
 #else
     const char *fname = PCHBuffer ? "/Cxx.cpp" : "/Cxx.h";
@@ -1506,7 +1513,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
 
     _cxxparse(Cxx);
 
-#ifdef _WIN32
+#ifdef _OS_WINDOWS_
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))GetProcAddress(GetModuleHandle(0), "julia_type_to_llvm");
 #else
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
@@ -2990,7 +2997,7 @@ JL_DLLEXPORT bool isDCComplete(clang::DeclContext *DC) {
   return (!clang::isa<clang::TagDecl>(DC) || DC->isDependentContext() || clang::cast<clang::TagDecl>(DC)->isCompleteDefinition() || clang::cast<clang::TagDecl>(DC)->isBeingDefined());
 }
 
-#ifndef _WIN32
+#ifndef _OS_WINDOWS_
 #include <signal.h>
 static void jl_unblock_signal(int sig)
 {
@@ -3024,5 +3031,5 @@ JL_DLLEXPORT void InstallSIGABRTHandler(void *exception)
   }
 }
 } // extern "C"
-#endif // _WIN32
+#endif // _OS_WINDOWS_
 }
