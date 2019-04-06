@@ -168,43 +168,42 @@ const clang::InputKind CKind = clang::InputKind::C;
 #endif
 
 extern "C" {
-    #define TYPE_ACCESS(EX,IN)                                    \
+    #define TYPE_ACCESS(EX, IN)                                   \
     JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {        \
       return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
     }
 
-    TYPE_ACCESS(cT_char,CharTy)
-    TYPE_ACCESS(cT_cchar,CharTy)
-    TYPE_ACCESS(cT_int1,BoolTy)
-    TYPE_ACCESS(cT_int8,SignedCharTy)
-    TYPE_ACCESS(cT_uint8,UnsignedCharTy)
-    TYPE_ACCESS(cT_int16,ShortTy)
-    TYPE_ACCESS(cT_uint16,UnsignedShortTy)
-    TYPE_ACCESS(cT_int32,IntTy)
-    TYPE_ACCESS(cT_uint32,UnsignedIntTy)
+    TYPE_ACCESS(cT_char, CharTy)
+    TYPE_ACCESS(cT_cchar, CharTy)
+    TYPE_ACCESS(cT_int1, BoolTy)
+    TYPE_ACCESS(cT_int8, SignedCharTy)
+    TYPE_ACCESS(cT_uint8, UnsignedCharTy)
+    TYPE_ACCESS(cT_int16, ShortTy)
+    TYPE_ACCESS(cT_uint16, UnsignedShortTy)
+    TYPE_ACCESS(cT_int32, IntTy)
+    TYPE_ACCESS(cT_uint32, UnsignedIntTy)
 #ifdef _P32
-    TYPE_ACCESS(cT_int64,LongLongTy)
-    TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
+    TYPE_ACCESS(cT_int64, LongLongTy)
+    TYPE_ACCESS(cT_uint64, UnsignedLongLongTy)
 #else
-    TYPE_ACCESS(cT_int64,LongTy)
-    TYPE_ACCESS(cT_uint64,UnsignedLongTy)
+    TYPE_ACCESS(cT_int64, LongTy)
+    TYPE_ACCESS(cT_uint64, UnsignedLongTy)
 #endif
-    TYPE_ACCESS(cT_size,getSizeType())
-    TYPE_ACCESS(cT_int128,Int128Ty)
-    TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
-    TYPE_ACCESS(cT_complex64,FloatComplexTy)
-    TYPE_ACCESS(cT_complex128,DoubleComplexTy)
-    TYPE_ACCESS(cT_float32,FloatTy)
-    TYPE_ACCESS(cT_float64,DoubleTy)
-    TYPE_ACCESS(cT_void,VoidTy)
-    TYPE_ACCESS(cT_wint,WIntTy)
+    TYPE_ACCESS(cT_size, getSizeType())
+    TYPE_ACCESS(cT_int128, Int128Ty)
+    TYPE_ACCESS(cT_uint128, UnsignedInt128Ty)
+    TYPE_ACCESS(cT_complex64, FloatComplexTy)
+    TYPE_ACCESS(cT_complex128, DoubleComplexTy)
+    TYPE_ACCESS(cT_float32, FloatTy)
+    TYPE_ACCESS(cT_float64, DoubleTy)
+    TYPE_ACCESS(cT_void, VoidTy)
+    TYPE_ACCESS(cT_wint, WIntTy)
 }
 
 // Utilities
-clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx)
-{
-    clang::SourceManager &sm = Cxx->CI->getSourceManager();
-    return sm.getLocForStartOfFile(sm.getMainFileID());
+clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx) {
+    clang::SourceManager &SM = Cxx->CI->getSourceManager();
+    return SM.getLocForStartOfFile(SM.getMainFileID());
 }
 
 static Type *(*f_julia_type_to_llvm)(void *jt, bool *isboxed);
@@ -213,9 +212,8 @@ extern "C" {
 
 extern void jl_error(const char *str);
 
-// For initialization.jl
-JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname)
-{
+// for initialization.jl
+JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname) {
   clang::SrcMgr::CharacteristicKind flag = (clang::SrcMgr::CharacteristicKind)kind;
   clang::FileManager &fm = Cxx->CI->getFileManager();
   clang::Preprocessor &pp = Cxx->Parser->getPreprocessor();
@@ -226,15 +224,13 @@ JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, con
     pp.getHeaderSearchInfo().AddSearchPath(clang::DirectoryLookup(dir,flag,isFramework),flag == clang::SrcMgr::C_System || flag == clang::SrcMgr::C_ExternCSystem);
 }
 
-JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx)
-{
+JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx){
     return Cxx->CI->getLangOpts().CPlusPlus == 0 &&
            Cxx->CI->getLangOpts().ObjC1 == 0 &&
            Cxx->CI->getLangOpts().ObjC2 == 0;
 }
 
-JL_DLLEXPORT int _cxxparse(CxxInstance *Cxx)
-{
+JL_DLLEXPORT int _cxxparse(CxxInstance *Cxx) {
     clang::Sema &S = Cxx->CI->getSema();
     clang::ASTConsumer *Consumer = &S.getASTConsumer();
 
@@ -393,26 +389,26 @@ JL_DLLEXPORT llvm::Function *CollectGlobalConstructors(CxxInstance *Cxx)
 }
 
 // tell the clang preprocessor to enter a anonymous source buffer
-JL_DLLEXPORT void EnterSourceFile(CxxInstance *CXX, char *data) {
+JL_DLLEXPORT void EnterSourceFile(CxxInstance *Cxx, char *data) {
     const clang::DirectoryLookup *CurDir = nullptr;
-    clang::SourceManager &SM = CXX->CI->getSourceManager();
+    clang::SourceManager &SM = Cxx->CI->getSourceManager();
     auto buffer = llvm::MemoryBuffer::getMemBufferCopy(llvm::StringRef(data));
     clang::FileID FID = SM.createFileID(std::move(buffer), clang::SrcMgr::C_User, 0, 0, SM.getLocForStartOfFile(SM.getMainFileID()));
-    clang::Preprocessor &P = CXX->Parser->getPreprocessor();
+    clang::Preprocessor &P = Cxx->Parser->getPreprocessor();
     P.EnterSourceFile(FID, CurDir, SM.getLocForStartOfFile(SM.getMainFileID()));
 }
 
 // enter the buffer, while pretending it's the contents of the file at path `file`
-JL_DLLEXPORT void EnterVirtualFile(CxxInstance *CXX, char *data, char *file_path) {
+JL_DLLEXPORT void EnterVirtualFile(CxxInstance *Cxx, char *data, char *file_path) {
     const clang::DirectoryLookup *CurDir = nullptr;
-    clang::FileManager &FM = CXX->CI->getFileManager();
-    clang::SourceManager &SM = CXX->CI->getSourceManager();
+    clang::FileManager &FM = Cxx->CI->getFileManager();
+    clang::SourceManager &SM = Cxx->CI->getSourceManager();
     llvm::StringRef FileName(file_path);
     auto buffer = llvm::MemoryBuffer::getMemBufferCopy(llvm::StringRef(data), FileName);
     const clang::FileEntry *Entry = FM.getVirtualFile(FileName, buffer->getBufferSize(), 0);
     SM.overrideFileContents(Entry, std::move(buffer));
     clang::FileID FID = SM.createFileID(Entry, SM.getLocForStartOfFile(SM.getMainFileID()), clang::SrcMgr::C_User);
-    clang::Preprocessor &P = CXX->Parser->getPreprocessor();
+    clang::Preprocessor &P = Cxx->Parser->getPreprocessor();
     P.EnterSourceFile(FID, CurDir, SM.getLocForStartOfFile(SM.getMainFileID()));
 }
 
@@ -570,8 +566,7 @@ JL_DLLEXPORT void *createNamespace(CxxInstance *Cxx,char *name)
         );
 }
 
-JL_DLLEXPORT void SetDeclInitializer(CxxInstance *Cxx, clang::VarDecl *D, llvm::Constant *CI)
-{
+JL_DLLEXPORT void SetDeclInitializer(CxxInstance *Cxx, clang::VarDecl *D, llvm::Constant *CI) {
     llvm::Constant *Const = Cxx->CGM->GetAddrOfGlobalVar(D);
     if (!isa<llvm::GlobalVariable>(Const))
       jl_error("Clang did not create a global variable for the given VarDecl");
@@ -580,9 +575,8 @@ JL_DLLEXPORT void SetDeclInitializer(CxxInstance *Cxx, clang::VarDecl *D, llvm::
     GV->setConstant(true);
 }
 
-JL_DLLEXPORT void *GetAddrOfFunction(CxxInstance *Cxx, clang::FunctionDecl *D)
-{
-  return (void*)Cxx->CGM->GetAddrOfFunction(D);
+JL_DLLEXPORT void *GetAddrOfFunction(CxxInstance *Cxx, clang::FunctionDecl *FD) {
+  return (void*)Cxx->CGM->GetAddrOfFunction(FD);
 }
 
 size_t cxxsizeofType(CxxInstance *Cxx, void *t);
@@ -1562,27 +1556,22 @@ JL_DLLEXPORT void apply_default_abi(CxxInstance *Cxx) {
 }
 
 JL_DLLEXPORT size_t getPCHSize(CxxInstance *Cxx) {
-  Cxx->PCHGenerator->HandleTranslationUnit(Cxx->CI->getASTContext());
-  return Cxx->PCHGenerator->getPCHSize();
+    Cxx->PCHGenerator->HandleTranslationUnit(Cxx->CI->getASTContext());
+    return Cxx->PCHGenerator->getPCHSize();
 }
 
-void decouple_pch(CxxInstance *Cxx, char *data)
-{
-  Cxx->PCHGenerator->getPCHData(data);
-  Cxx->JCodeGen = new JuliaCodeGenerator(Cxx);
-  Cxx->CI->setASTConsumer(std::unique_ptr<clang::ASTConsumer>(Cxx->JCodeGen));
-  Cxx->CI->getSema().Consumer = Cxx->CI->getASTConsumer();
+void decouple_pch(CxxInstance *Cxx, char *data) {
+    Cxx->PCHGenerator->getPCHData(data);
+    Cxx->JCodeGen = new JuliaCodeGenerator(Cxx);
+    Cxx->CI->setASTConsumer(std::unique_ptr<clang::ASTConsumer>(Cxx->JCodeGen));
+    Cxx->CI->getSema().Consumer = Cxx->CI->getASTConsumer();
 }
 
 static llvm::Module *cur_module = NULL;
 static llvm::Function *cur_func = NULL;
 
 
-JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc)
-{
-    //assert(in_cpp == false);
-    //in_cpp = true;
-
+JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
     assert(Cxx->CGF != NULL);
 
     cppcall_state_t *state = new cppcall_state_t;
@@ -1626,8 +1615,7 @@ JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc)
     return state;
 }
 
-JL_DLLEXPORT bool EmitTopLevelDecl(CxxInstance *Cxx, clang::Decl *D)
-{
+JL_DLLEXPORT bool EmitTopLevelDecl(CxxInstance *Cxx, clang::Decl *D) {
     return Cxx->JCodeGen->EmitTopLevelDecl(D);
 }
 
