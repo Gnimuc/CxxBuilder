@@ -14,7 +14,11 @@
 
 #include <iostream>
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
+#define _OS_WINDOWS_
+#endif
+
+#ifdef _OS_WINDOWS_
 #include <windows.h>
 #else
 #include <dlfcn.h>
@@ -143,39 +147,57 @@ struct CxxInstance {
   JuliaPCHGenerator *PCHGenerator;
 };
 const clang::InputKind CKind = clang::InputKind::C;
-//#define C CxxInstance *Cxx
+
+#if defined(_CPU_X86_64_)
+#  define _P64
+#elif defined(_CPU_X86_)
+#  define _P32
+#elif defined(_OS_WINDOWS_)
+/* Not sure how to determine pointer size on Windows running ARM. */
+#  if _WIN64
+#    define _P64
+#  else
+#    define _P32
+#  endif
+#elif __SIZEOF_POINTER__ == 8
+#    define _P64
+#elif __SIZEOF_POINTER__ == 4
+#    define _P32
+#else
+#  error pointer size not known for your platform / compiler
+#endif
 
 extern "C" {
-  #define TYPE_ACCESS(EX,IN)                                    \
-  JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {                          \
-    return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
-  }
+    #define TYPE_ACCESS(EX,IN)                                    \
+    JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {        \
+      return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
+    }
 
-  TYPE_ACCESS(cT_char,CharTy)
-  TYPE_ACCESS(cT_cchar,CharTy)
-  TYPE_ACCESS(cT_int1,BoolTy)
-  TYPE_ACCESS(cT_int8,SignedCharTy)
-  TYPE_ACCESS(cT_uint8,UnsignedCharTy)
-  TYPE_ACCESS(cT_int16,ShortTy)
-  TYPE_ACCESS(cT_uint16,UnsignedShortTy)
-  TYPE_ACCESS(cT_int32,IntTy)
-  TYPE_ACCESS(cT_uint32,UnsignedIntTy)
+    TYPE_ACCESS(cT_char,CharTy)
+    TYPE_ACCESS(cT_cchar,CharTy)
+    TYPE_ACCESS(cT_int1,BoolTy)
+    TYPE_ACCESS(cT_int8,SignedCharTy)
+    TYPE_ACCESS(cT_uint8,UnsignedCharTy)
+    TYPE_ACCESS(cT_int16,ShortTy)
+    TYPE_ACCESS(cT_uint16,UnsignedShortTy)
+    TYPE_ACCESS(cT_int32,IntTy)
+    TYPE_ACCESS(cT_uint32,UnsignedIntTy)
 #ifdef _P32
-  TYPE_ACCESS(cT_int64,LongLongTy)
-  TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
+    TYPE_ACCESS(cT_int64,LongLongTy)
+    TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
 #else
-  TYPE_ACCESS(cT_int64,LongTy)
-  TYPE_ACCESS(cT_uint64,UnsignedLongTy)
+    TYPE_ACCESS(cT_int64,LongTy)
+    TYPE_ACCESS(cT_uint64,UnsignedLongTy)
 #endif
-  TYPE_ACCESS(cT_size,getSizeType())
-  TYPE_ACCESS(cT_int128,Int128Ty)
-  TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
-  TYPE_ACCESS(cT_complex64,FloatComplexTy)
-  TYPE_ACCESS(cT_complex128,DoubleComplexTy)
-  TYPE_ACCESS(cT_float32,FloatTy)
-  TYPE_ACCESS(cT_float64,DoubleTy)
-  TYPE_ACCESS(cT_void,VoidTy)
-  TYPE_ACCESS(cT_wint,WIntTy)
+    TYPE_ACCESS(cT_size,getSizeType())
+    TYPE_ACCESS(cT_int128,Int128Ty)
+    TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
+    TYPE_ACCESS(cT_complex64,FloatComplexTy)
+    TYPE_ACCESS(cT_complex128,DoubleComplexTy)
+    TYPE_ACCESS(cT_float32,FloatTy)
+    TYPE_ACCESS(cT_float64,DoubleTy)
+    TYPE_ACCESS(cT_void,VoidTy)
+    TYPE_ACCESS(cT_wint,WIntTy)
 }
 
 // Utilities
@@ -1396,7 +1418,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             clang::vfs::getRealFileSystem()));
         llvm::IntrusiveRefCntPtr<clang::vfs::InMemoryFileSystem> IMFS(
           new clang::vfs::InMemoryFileSystem);
-#ifdef _WIN32
+#ifdef _OS_WINDOWS
         IMFS->addFile("C:/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
           StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
         ));
@@ -1412,7 +1434,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     Cxx->CI->createFileManager();
     Cxx->CI->createSourceManager(Cxx->CI->getFileManager());
     if (PCHBuffer) {
-#ifdef _WIN32
+#ifdef _OS_WINDOWS
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "C:/Cxx.pch";
 #else
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
@@ -1462,7 +1484,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             Cxx->CI->getASTConsumer().GetASTDeserializationListener();
         bool DeleteDeserialListener = false;
         Cxx->CI->createPCHExternalASTSource(
-#ifdef _WIN32
+#ifdef _OS_WINDOWS
           "C:/Cxx.pch",
 #else
           "/Cxx.pch",
@@ -1488,7 +1510,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     pp.enableIncrementalProcessing();
 
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
-#ifdef _WIN32
+#ifdef _OS_WINDOWS
     const char *fname = PCHBuffer ? "C:/Cxx.cpp" : "C:/Cxx.h";
 #else
     const char *fname = PCHBuffer ? "/Cxx.cpp" : "/Cxx.h";
@@ -1506,7 +1528,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
 
     _cxxparse(Cxx);
 
-#ifdef _WIN32
+#ifdef _OS_WINDOWS
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))GetProcAddress(GetModuleHandle(0), "julia_type_to_llvm");
 #else
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
@@ -2990,7 +3012,7 @@ JL_DLLEXPORT bool isDCComplete(clang::DeclContext *DC) {
   return (!clang::isa<clang::TagDecl>(DC) || DC->isDependentContext() || clang::cast<clang::TagDecl>(DC)->isCompleteDefinition() || clang::cast<clang::TagDecl>(DC)->isBeingDefined());
 }
 
-#ifndef _WIN32
+#ifndef _OS_WINDOWS
 #include <signal.h>
 static void jl_unblock_signal(int sig)
 {
@@ -3024,5 +3046,5 @@ JL_DLLEXPORT void InstallSIGABRTHandler(void *exception)
   }
 }
 } // extern "C"
-#endif // _WIN32
+#endif // _OS_WINDOWS
 }
