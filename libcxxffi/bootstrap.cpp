@@ -153,44 +153,43 @@ struct CxxInstance {
   JuliaPCHGenerator *PCHGenerator;
 };
 const clang::InputKind CKind = clang::InputKind::C;
-//#define C CxxInstance *Cxx
 
 extern "C" {
-  #define TYPE_ACCESS(EX,IN)                                    \
-  JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {                          \
-    return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
-  }
 
-  TYPE_ACCESS(cT_char,CharTy)
-  TYPE_ACCESS(cT_cchar,CharTy)
-  TYPE_ACCESS(cT_int1,BoolTy)
-  TYPE_ACCESS(cT_int8,SignedCharTy)
-  TYPE_ACCESS(cT_uint8,UnsignedCharTy)
-  TYPE_ACCESS(cT_int16,ShortTy)
-  TYPE_ACCESS(cT_uint16,UnsignedShortTy)
-  TYPE_ACCESS(cT_int32,IntTy)
-  TYPE_ACCESS(cT_uint32,UnsignedIntTy)
+#define TYPE_ACCESS(EX,IN)                                          \
+    JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {          \
+        return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
+    }
+
+TYPE_ACCESS(cT_char,CharTy)
+TYPE_ACCESS(cT_cchar,CharTy)
+TYPE_ACCESS(cT_int1,BoolTy)
+TYPE_ACCESS(cT_int8,SignedCharTy)
+TYPE_ACCESS(cT_uint8,UnsignedCharTy)
+TYPE_ACCESS(cT_int16,ShortTy)
+TYPE_ACCESS(cT_uint16,UnsignedShortTy)
+TYPE_ACCESS(cT_int32,IntTy)
+TYPE_ACCESS(cT_uint32,UnsignedIntTy)
 #ifdef _P32
-  TYPE_ACCESS(cT_int64,LongLongTy)
-  TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
+TYPE_ACCESS(cT_int64,LongLongTy)
+TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
 #else
-  TYPE_ACCESS(cT_int64,LongTy)
-  TYPE_ACCESS(cT_uint64,UnsignedLongTy)
+TYPE_ACCESS(cT_int64,LongTy)
+TYPE_ACCESS(cT_uint64,UnsignedLongTy)
 #endif
-  TYPE_ACCESS(cT_size,getSizeType())
-  TYPE_ACCESS(cT_int128,Int128Ty)
-  TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
-  TYPE_ACCESS(cT_complex64,FloatComplexTy)
-  TYPE_ACCESS(cT_complex128,DoubleComplexTy)
-  TYPE_ACCESS(cT_float32,FloatTy)
-  TYPE_ACCESS(cT_float64,DoubleTy)
-  TYPE_ACCESS(cT_void,VoidTy)
-  TYPE_ACCESS(cT_wint,WIntTy)
-}
+TYPE_ACCESS(cT_size,getSizeType())
+TYPE_ACCESS(cT_int128,Int128Ty)
+TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
+TYPE_ACCESS(cT_complex64,FloatComplexTy)
+TYPE_ACCESS(cT_complex128,DoubleComplexTy)
+TYPE_ACCESS(cT_float32,FloatTy)
+TYPE_ACCESS(cT_float64,DoubleTy)
+TYPE_ACCESS(cT_void,VoidTy)
+TYPE_ACCESS(cT_wint,WIntTy)
+}  // extern "C"
 
 // Utilities
-clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx)
-{
+clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx) {
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
     return sm.getLocForStartOfFile(sm.getMainFileID());
 }
@@ -202,45 +201,44 @@ extern "C" {
 extern void jl_error(const char *str);
 
 // For initialization.jl
-JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname)
-{
-  clang::SrcMgr::CharacteristicKind flag = (clang::SrcMgr::CharacteristicKind)kind;
-  clang::FileManager &fm = Cxx->CI->getFileManager();
-  clang::Preprocessor &pp = Cxx->Parser->getPreprocessor();
-  auto dir = fm.getDirectory(dirname);
-  if (dir == NULL)
-    std::cout << "WARNING: Could not add directory " << dirname << " to clang search path!\n";
-  else
-    pp.getHeaderSearchInfo().AddSearchPath(clang::DirectoryLookup(dir,flag,isFramework),flag == clang::SrcMgr::C_System || flag == clang::SrcMgr::C_ExternCSystem);
+JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname) {
+    clang::SrcMgr::CharacteristicKind flag = (clang::SrcMgr::CharacteristicKind)kind;
+    clang::FileManager &fm = Cxx->CI->getFileManager();
+    clang::Preprocessor &pp = Cxx->Parser->getPreprocessor();
+    auto dir = fm.getDirectory(dirname);
+    if (dir == NULL)
+        std::cout << "WARNING: Could not add directory " << dirname << " to clang search path!\n";
+    else
+        pp.getHeaderSearchInfo().AddSearchPath(clang::DirectoryLookup(dir,flag,isFramework),flag == clang::SrcMgr::C_System || flag == clang::SrcMgr::C_ExternCSystem);
 }
 
-JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx)
-{
+JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx) {
     return Cxx->CI->getLangOpts().CPlusPlus == 0 &&
            Cxx->CI->getLangOpts().ObjC1 == 0 &&
            Cxx->CI->getLangOpts().ObjC2 == 0;
 }
 
-JL_DLLEXPORT int _cxxparse(CxxInstance *Cxx)
-{
+// Parse everything until the end of the currently entered source file
+// Return 1 if the file was successfully parsed (i.e. no error occurred)
+JL_DLLEXPORT int _cxxparse(CxxInstance *Cxx) {
     clang::Sema &S = Cxx->CI->getSema();
     clang::ASTConsumer *Consumer = &S.getASTConsumer();
 
     clang::Parser::DeclGroupPtrTy ADecl;
 
     while (!Cxx->Parser->ParseTopLevelDecl(ADecl)) {
-      // If we got a null return and something *was* parsed, ignore it.  This
-      // is due to a top-level semicolon, an action override, or a parse error
-      // skipping something.
-      if (ADecl && !Consumer->HandleTopLevelDecl(ADecl.get()))
-        return 0;
+        // If we got a null return and something *was* parsed, ignore it.
+        // This is due to a top-level semicolon, an action override, or
+        // a parse error skipping something.
+        if (ADecl && !Consumer->HandleTopLevelDecl(ADecl.get()))
+            return 0;
     }
 
-    S.DefineUsedVTables();
-    S.PerformPendingInstantiations(false);
-    Cxx->CGM->Release();
+    S.DefineUsedVTables();  // define all of the vtables that have been used in this translation unit and reference any virtual members used by those vtables
+    S.PerformPendingInstantiations();  // performs template instantiation for all implicit template instantiations we have seen until this point
+    Cxx->CGM->Release();  // finalize LLVM code generation
     Cxx->CI->getDiagnostics().Reset();
-    Cxx->CI->getDiagnostics().setSuppressSystemWarnings(true);
+    Cxx->CI->getDiagnostics().setSuppressSystemWarnings(true);  // mask warnings that come from system headers.
 
     return 1;
 }
