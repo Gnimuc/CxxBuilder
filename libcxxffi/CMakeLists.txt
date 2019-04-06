@@ -54,11 +54,11 @@ endif()
 
 set(CXXJL_TARGET cxxffi)
 
-link_directories(${CLANG_LIB_DIRS} ${JULIA_LIB_DIRS})
+link_directories(${CLANG_LIB_DIRS})
 
 add_library(${CXXJL_TARGET} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap.cpp)
 
-target_include_directories(${CXXJL_TARGET} PUBLIC ${CLANG_INCLUDE_DIRS} ${CLANG_SOURCE_INCLUDE_DIRS} ${JULIA_INCLUDE_DIRS} ${JULIA_SOURCE_INCLUDE_DIRS})
+target_include_directories(${CXXJL_TARGET} PUBLIC ${CLANG_INCLUDE_DIRS} ${CLANG_SOURCE_INCLUDE_DIRS})
 target_compile_options(${CXXJL_TARGET} PUBLIC -DLLVM_NDEBUG -DLIBRARY_EXPORTS -fno-rtti)
 
 set(CLANG_LIBS clangFrontendTool
@@ -84,8 +84,8 @@ set(CLANG_LIBS clangFrontendTool
                clangARCMigrate
                clangFormat)
 
-find_library(JULIA_LIBS NAMES julia libjulia libjulia.dylib libjulia.so libjulia.dll PATHS ${JULIA_LIB_DIRS})
-message(STATUS "JULIA_LIBS: " ${JULIA_LIBS})
+# find_library(JULIA_LIBS NAMES julia libjulia libjulia.dylib libjulia.so libjulia.dll PATHS ${JULIA_LIB_DIRS})
+# message(STATUS "JULIA_LIBS: " ${JULIA_LIBS})
 
 find_library(LLVM_LIBS NAMES LLVM libLLVM libLLVM.dylib libLLVM.so LLVM.dll PATHS ${JULIA_LIB_DIRS} ${JULIA_BINARY_PREFIX}/bin)
 message(STATUS "LLVM_LIBS: " ${LLVM_LIBS})
@@ -97,7 +97,7 @@ else()
     if(WIN32)
         target_link_libraries(${CXXJL_TARGET} -ljulia -lLLVM -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive -lversion )
     else()
-        target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
+        target_link_libraries(${CXXJL_TARGET} ${LLVM_LIBS})
         target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive)
     endif()
 endif()

@@ -210,7 +210,6 @@ static Type *(*f_julia_type_to_llvm)(void *jt, bool *isboxed);
 
 extern "C" {
 
-// extern void jl_error(const char *str);
 
 // for initialization.jl
 JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname) {
@@ -566,14 +565,15 @@ JL_DLLEXPORT void *createNamespace(CxxInstance *Cxx,char *name)
         );
 }
 
-JL_DLLEXPORT void SetDeclInitializer(CxxInstance *Cxx, clang::VarDecl *D, llvm::Constant *CI) {
+// return 1 for error "Clang did not create a global variable for the given VarDecl"
+JL_DLLEXPORT int SetDeclInitializer(CxxInstance *Cxx, clang::VarDecl *D, llvm::Constant *CI) {
     llvm::Constant *Const = Cxx->CGM->GetAddrOfGlobalVar(D);
     if (!isa<llvm::GlobalVariable>(Const))
-        return;
-      // jl_error("Clang did not create a global variable for the given VarDecl");
+        return 1;
     llvm::GlobalVariable *GV = cast<llvm::GlobalVariable>(Const);
     GV->setInitializer(ConstantExpr::getBitCast(CI, GV->getType()->getElementType()));
     GV->setConstant(true);
+    return 0;
 }
 
 JL_DLLEXPORT void *GetAddrOfFunction(CxxInstance *Cxx, clang::FunctionDecl *FD) {
@@ -847,15 +847,14 @@ JL_DLLEXPORT void *DeleteUnusedArguments(llvm::Function *F, uint64_t *dtodelete,
   return NF;
 }
 
-
-JL_DLLEXPORT void ReplaceFunctionForDecl(CxxInstance *Cxx,clang::FunctionDecl *D, llvm::Function *F, bool DoInline, bool specsig, bool firstIsEnv, bool *needsbox, void *retty, void **juliatypes, bool newgc)
-{
+// return 1 for error "Clang did not create function for the given FunctionDecl"
+// return 2 for error "Tried to do something other than calling it to a julia expression"
+JL_DLLEXPORT int ReplaceFunctionForDecl(CxxInstance *Cxx,clang::FunctionDecl *D, llvm::Function *F, bool DoInline, bool specsig, bool firstIsEnv, bool *needsbox, void *retty, void **juliatypes, bool newgc) {
   const clang::CodeGen::CGFunctionInfo &FI = Cxx->CGM->getTypes().arrangeGlobalDeclaration(D);
   llvm::FunctionType *Ty = Cxx->CGM->getTypes().GetFunctionType(FI);
   llvm::Constant *Const = Cxx->CGM->GetAddrOfFunction(D,Ty);
   if (!Const || !isa<llvm::Function>(Const))
-    return;
-    // jl_error("Clang did not create function for the given FunctionDecl");
+    return 1;
   assert(F);
   llvm::Function *OF = cast<llvm::Function>(Const);
   llvm::ValueToValueMapTy VMap;
@@ -876,18 +875,18 @@ JL_DLLEXPORT void ReplaceFunctionForDecl(CxxInstance *Cxx,clang::FunctionDecl *D
     while (true)
     {
       if (NF->getNumUses() == 0)
-        return;
+        return 0;
       Value::user_iterator I = NF->user_begin();
       if (llvm::isa<llvm::CallInst>(*I)) {
         llvm::InlineFunctionInfo IFI;
         llvm::InlineFunction(cast<llvm::CallInst>(*I), IFI, nullptr, true);
       } else {
         I->print(llvm::errs(), false);
-        return;
-        // jl_error("Tried to do something other than calling it to a julia expression");
+        return 2;
       }
     }
   }
+  return 0;
 }
 
 JL_DLLEXPORT void *ActOnStartOfFunction(CxxInstance *Cxx, clang::FunctionDecl *D, bool ScopeIsNull = false)
@@ -2922,8 +2921,6 @@ JL_DLLEXPORT void *getTypeName(CxxInstance *Cxx, void *Ty)
   return jl_pchar_to_string(ActualName.data(), ActualName.size());
 }
 
-// Exception handling
-// extern void jl_error(const char *str);
 
 #include "unwind.h"
 void __attribute__((noreturn)) (*process_cxx_exception)(uint64_t exceptionClass, _Unwind_Exception* unwind_exception);
