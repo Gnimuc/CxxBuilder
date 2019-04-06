@@ -1409,7 +1409,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             clang::vfs::getRealFileSystem()));
         llvm::IntrusiveRefCntPtr<clang::vfs::InMemoryFileSystem> IMFS(
           new clang::vfs::InMemoryFileSystem);
-#ifdef _OS_WINDOWS
+#ifdef _OS_WINDOWS_
         IMFS->addFile("C:/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
           StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
         ));
@@ -1425,7 +1425,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     Cxx->CI->createFileManager();
     Cxx->CI->createSourceManager(Cxx->CI->getFileManager());
     if (PCHBuffer) {
-#ifdef _OS_WINDOWS
+#ifdef _OS_WINDOWS_
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "C:/Cxx.pch";
 #else
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
@@ -1475,7 +1475,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
             Cxx->CI->getASTConsumer().GetASTDeserializationListener();
         bool DeleteDeserialListener = false;
         Cxx->CI->createPCHExternalASTSource(
-#ifdef _OS_WINDOWS
+#ifdef _OS_WINDOWS_
           "C:/Cxx.pch",
 #else
           "/Cxx.pch",
@@ -1501,7 +1501,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
     pp.enableIncrementalProcessing();
 
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
-#ifdef _OS_WINDOWS
+#ifdef _OS_WINDOWS_
     const char *fname = PCHBuffer ? "C:/Cxx.cpp" : "C:/Cxx.h";
 #else
     const char *fname = PCHBuffer ? "/Cxx.cpp" : "/Cxx.h";
@@ -1519,7 +1519,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH, const char *PCHBuf
 
     _cxxparse(Cxx);
 
-#ifdef _OS_WINDOWS
+#ifdef _OS_WINDOWS_
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))GetProcAddress(GetModuleHandle(0), "julia_type_to_llvm");
 #else
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
@@ -2994,7 +2994,7 @@ JL_DLLEXPORT bool isDCComplete(clang::DeclContext *DC) {
   return (!clang::isa<clang::TagDecl>(DC) || DC->isDependentContext() || clang::cast<clang::TagDecl>(DC)->isCompleteDefinition() || clang::cast<clang::TagDecl>(DC)->isBeingDefined());
 }
 
-#ifndef _OS_WINDOWS
+#ifndef _OS_WINDOWS_
 #include <signal.h>
 static void jl_unblock_signal(int sig)
 {
@@ -3028,5 +3028,5 @@ JL_DLLEXPORT void InstallSIGABRTHandler(void *exception)
   }
 }
 } // extern "C"
-#endif // _OS_WINDOWS
+#endif // _OS_WINDOWS_
 }
