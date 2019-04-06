@@ -392,37 +392,32 @@ JL_DLLEXPORT llvm::Function *CollectGlobalConstructors(CxxInstance *Cxx)
     return InitF;
 }
 
-JL_DLLEXPORT void EnterSourceFile(CxxInstance *Cxx, char *data, size_t length)
-{
+// tell the clang preprocessor to enter a anonymous source buffer
+JL_DLLEXPORT void EnterSourceFile(CxxInstance *CXX, char *data) {
     const clang::DirectoryLookup *CurDir = nullptr;
-    clang::FileManager &fm = Cxx->CI->getFileManager();
-    clang::SourceManager &sm = Cxx->CI->getSourceManager();
-    clang::FileID FID = sm.createFileID(llvm::MemoryBuffer::getMemBufferCopy(llvm::StringRef(data,length)),clang::SrcMgr::C_User,
-      0,0,sm.getLocForStartOfFile(sm.getMainFileID()));
-    clang::Preprocessor &P = Cxx->Parser->getPreprocessor();
-    P.EnterSourceFile(FID, CurDir, sm.getLocForStartOfFile(sm.getMainFileID()));
+    clang::SourceManager &SM = CXX->CI->getSourceManager();
+    auto buffer = llvm::MemoryBuffer::getMemBufferCopy(llvm::StringRef(data));
+    clang::FileID FID = SM.createFileID(std::move(buffer), clang::SrcMgr::C_User, 0, 0, SM.getLocForStartOfFile(SM.getMainFileID()));
+    clang::Preprocessor &P = CXX->Parser->getPreprocessor();
+    P.EnterSourceFile(FID, CurDir, SM.getLocForStartOfFile(SM.getMainFileID()));
 }
 
-JL_DLLEXPORT void EnterVirtualFile(CxxInstance *Cxx, char *data, size_t length, char *VirtualPath, size_t PathLength)
-{
+// enter the buffer, while pretending it's the contents of the file at path `file`
+JL_DLLEXPORT void EnterVirtualFile(CxxInstance *CXX, char *data, char *file_path) {
     const clang::DirectoryLookup *CurDir = nullptr;
-    clang::FileManager &fm = Cxx->CI->getFileManager();
-    clang::SourceManager &sm = Cxx->CI->getSourceManager();
-    llvm::StringRef FileName(VirtualPath, PathLength);
-    llvm::StringRef Code(data,length);
-    std::unique_ptr<llvm::MemoryBuffer> Buf =
-      llvm::MemoryBuffer::getMemBufferCopy(Code, FileName);
-    const clang::FileEntry *Entry =
-        fm.getVirtualFile(FileName, Buf->getBufferSize(), 0);
-    sm.overrideFileContents(Entry, std::move(Buf));
-    clang::FileID FID = sm.createFileID(Entry,sm.getLocForStartOfFile(sm.getMainFileID()),clang::SrcMgr::C_User);
-    clang::Preprocessor &P = Cxx->Parser->getPreprocessor();
-    P.EnterSourceFile(FID, CurDir, sm.getLocForStartOfFile(sm.getMainFileID()));
+    clang::FileManager &FM = CXX->CI->getFileManager();
+    clang::SourceManager &SM = CXX->CI->getSourceManager();
+    llvm::StringRef FileName(file_path);
+    auto buffer = llvm::MemoryBuffer::getMemBufferCopy(llvm::StringRef(data), FileName);
+    const clang::FileEntry *Entry = FM.getVirtualFile(FileName, buffer->getBufferSize(), 0);
+    SM.overrideFileContents(Entry, std::move(buffer));
+    clang::FileID FID = SM.createFileID(Entry, SM.getLocForStartOfFile(SM.getMainFileID()), clang::SrcMgr::C_User);
+    clang::Preprocessor &P = CXX->Parser->getPreprocessor();
+    P.EnterSourceFile(FID, CurDir, SM.getLocForStartOfFile(SM.getMainFileID()));
 }
 
-JL_DLLEXPORT int cxxparse(CxxInstance *Cxx, char *data, size_t length)
-{
-    EnterSourceFile(Cxx, data, length);
+JL_DLLEXPORT int cxxparse(CxxInstance *Cxx, char *data) {
+    EnterSourceFile(Cxx, data);
     return _cxxparse(Cxx);
 }
 
@@ -1559,11 +1554,10 @@ JL_DLLEXPORT void init_clang_instance_from_invocation(CxxInstance *Cxx, clang::C
 
 #define xstringify(s) stringify(s)
 #define stringify(s) #s
-JL_DLLEXPORT void apply_default_abi(CxxInstance *Cxx)
-{
+JL_DLLEXPORT void apply_default_abi(CxxInstance *Cxx) {
 #if defined(_GLIBCXX_USE_CXX11_ABI)
     char define[] = "#define _GLIBCXX_USE_CXX11_ABI " xstringify(_GLIBCXX_USE_CXX11_ABI);
-    cxxparse(Cxx, define, sizeof(define)-1);
+    cxxparse(Cxx, define);
 #endif
 }
 
