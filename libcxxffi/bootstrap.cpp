@@ -210,7 +210,7 @@ static Type *(*f_julia_type_to_llvm)(void *jt, bool *isboxed);
 
 extern "C" {
 
-extern void jl_error(const char *str);
+// extern void jl_error(const char *str);
 
 // for initialization.jl
 JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname) {
@@ -569,7 +569,8 @@ JL_DLLEXPORT void *createNamespace(CxxInstance *Cxx,char *name)
 JL_DLLEXPORT void SetDeclInitializer(CxxInstance *Cxx, clang::VarDecl *D, llvm::Constant *CI) {
     llvm::Constant *Const = Cxx->CGM->GetAddrOfGlobalVar(D);
     if (!isa<llvm::GlobalVariable>(Const))
-      jl_error("Clang did not create a global variable for the given VarDecl");
+        return;
+      // jl_error("Clang did not create a global variable for the given VarDecl");
     llvm::GlobalVariable *GV = cast<llvm::GlobalVariable>(Const);
     GV->setInitializer(ConstantExpr::getBitCast(CI, GV->getType()->getElementType()));
     GV->setConstant(true);
@@ -853,7 +854,8 @@ JL_DLLEXPORT void ReplaceFunctionForDecl(CxxInstance *Cxx,clang::FunctionDecl *D
   llvm::FunctionType *Ty = Cxx->CGM->getTypes().GetFunctionType(FI);
   llvm::Constant *Const = Cxx->CGM->GetAddrOfFunction(D,Ty);
   if (!Const || !isa<llvm::Function>(Const))
-    jl_error("Clang did not create function for the given FunctionDecl");
+    return;
+    // jl_error("Clang did not create function for the given FunctionDecl");
   assert(F);
   llvm::Function *OF = cast<llvm::Function>(Const);
   llvm::ValueToValueMapTy VMap;
@@ -881,7 +883,8 @@ JL_DLLEXPORT void ReplaceFunctionForDecl(CxxInstance *Cxx,clang::FunctionDecl *D
         llvm::InlineFunction(cast<llvm::CallInst>(*I), IFI, nullptr, true);
       } else {
         I->print(llvm::errs(), false);
-        jl_error("Tried to do something other than calling it to a julia expression");
+        return;
+        // jl_error("Tried to do something other than calling it to a julia expression");
       }
     }
   }
@@ -2920,7 +2923,7 @@ JL_DLLEXPORT void *getTypeName(CxxInstance *Cxx, void *Ty)
 }
 
 // Exception handling
-extern void jl_error(const char *str);
+// extern void jl_error(const char *str);
 
 #include "unwind.h"
 void __attribute__((noreturn)) (*process_cxx_exception)(uint64_t exceptionClass, _Unwind_Exception* unwind_exception);
