@@ -97,6 +97,7 @@ cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/include/* ${prefix}/src/llvm-6.0.1/includ
 cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/lib
+cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
 cd $WORKSPACE/srcdir
