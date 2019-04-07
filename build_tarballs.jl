@@ -26,10 +26,6 @@ sources = [
     "http://releases.llvm.org/$(llvm_ver)/lld-$(llvm_ver).src.tar.xz" =>
     "e706745806921cea5c45700e13ebe16d834b5e3c0b7ad83bf6da1f28b0634e11",
     "patches",
-    # Julia source
-    "JuliaSource",
-    # Add pre-built Julia tarballs
-    "JuliaBinary",
     # Add pre-built LLVM tarballs
     "LLVM",
     # Add libcxxffi source
@@ -86,15 +82,10 @@ tar -C LLVMBinary --strip-components=1 -xf *LLVM*.tar.gz
 cd $WORKSPACE/srcdir/
 mkdir build && cd build
 CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
 CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir/LLVMBinary"
 cmake .. ${CMAKE_FLAGS}
 make -j${nproc} VERBOSE=1
 make install VERBOSE=1
-
-mkdir -p ${prefix}/usr/lib
-ln -s ${prefix}/lib/* ${prefix}/usr/lib/
 
 mkdir -p ${prefix}/src/clang-6.0.1/include
 mkdir -p ${prefix}/src/llvm-6.0.1/include
@@ -105,6 +96,7 @@ cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/tools/clang/include/* ${prefix}/src/clang
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/include/* ${prefix}/src/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
+cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/lib
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
 cd $WORKSPACE/srcdir
@@ -129,10 +121,10 @@ fi
 
 platforms = [
         # BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+         BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.MacOS(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+        # BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7))
     ]
