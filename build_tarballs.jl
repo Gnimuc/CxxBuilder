@@ -87,6 +87,8 @@ cmake .. ${CMAKE_FLAGS}
 make -j${nproc} VERBOSE=1
 make install VERBOSE=1
 
+mkdir -p ${prefix}/bin
+
 mkdir -p ${prefix}/src/clang-6.0.1/include
 mkdir -p ${prefix}/src/llvm-6.0.1/include
 mkdir -p ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include
