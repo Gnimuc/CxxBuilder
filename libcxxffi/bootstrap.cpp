@@ -1562,7 +1562,7 @@ JL_DLLEXPORT size_t getPCHSize(CxxInstance *Cxx) {
     return Cxx->PCHGenerator->getPCHSize();
 }
 
-void decouple_pch(CxxInstance *Cxx, char *data) {
+JL_DLLEXPORT void decouple_pch(CxxInstance *Cxx, char *data) {
     Cxx->PCHGenerator->getPCHData(data);
     Cxx->JCodeGen = new JuliaCodeGenerator(Cxx);
     Cxx->CI->setASTConsumer(std::unique_ptr<clang::ASTConsumer>(Cxx->JCodeGen));
