@@ -118,7 +118,7 @@
 
 // From julia
 using namespace llvm;
-extern llvm::LLVMContext jl_LLVMContext;
+JL_DLLEXPORT llvm::LLVMContext jl_LLVMContext;
 static llvm::Type *T_pvalue_llvmt;
 static llvm::Type *T_pjlvalue;
 static llvm::Type *T_prjlvalue;
