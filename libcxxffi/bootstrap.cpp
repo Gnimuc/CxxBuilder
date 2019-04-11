@@ -2941,8 +2941,8 @@ JL_DLLEXPORT void *getTypeName(CxxInstance *Cxx, void *Ty)
 extern void jl_error(const char *str);
 
 #include "unwind.h"
-void __attribute__((noreturn)) (*process_cxx_exception)(uint64_t exceptionClass, _Unwind_Exception* unwind_exception);
-_Unwind_Reason_Code __cxxjl_personality_v0
+JL_DLLEXPORT void __attribute__((noreturn)) (*process_cxx_exception)(uint64_t exceptionClass, _Unwind_Exception* unwind_exception);
+JL_DLLEXPORT _Unwind_Reason_Code __cxxjl_personality_v0
                     (int version, _Unwind_Action actions, uint64_t exceptionClass,
                      _Unwind_Exception* unwind_exception, _Unwind_Context* context)
 {
