@@ -12,28 +12,29 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 
-#include <iostream>
-
 #if defined(_WIN32) || defined(_WIN64)
 #define _OS_WINDOWS_
 #endif
 
 #ifdef _OS_WINDOWS_
+#define STDCALL __stdcall
+# ifdef LIBRARY_EXPORTS
+#  define JL_DLLEXPORT __declspec(dllexport)
+# else
+#  define JL_DLLEXPORT __declspec(dllimport)
+# endif
+#else
+#define STDCALL
+#define JL_DLLEXPORT __attribute__ ((visibility("default")))
+#endif
+
+#include <iostream>
+
+#include <cstdlib>
+#ifdef _OS_WINDOWS_
 #include <windows.h>
 #else
 #include <dlfcn.h>
-#endif
-
-#include <cstdlib>
-
-#ifdef NDEBUG
-#define OLD_NDEBUG
-#endif
-
-#ifdef LLVM_NDEBUG
-#define NDEBUG 1
-#else
-#undef NDEBUG
 #endif
 
 #include "llvm/Config/llvm-config.h"
@@ -100,22 +101,6 @@
 #undef private
 #include "CodeGen/CGCXXABI.h"
 
-#ifdef _OS_WINDOWS_
-#define STDCALL __stdcall
-# ifdef LIBRARY_EXPORTS
-#  define JL_DLLEXPORT __declspec(dllexport)
-# else
-#  define JL_DLLEXPORT __declspec(dllimport)
-# endif
-#else
-#define STDCALL
-#define JL_DLLEXPORT __attribute__ ((visibility("default")))
-#endif
-
-#ifndef OLD_NDEBUG
-#undef NDEBUG
-#endif
-
 // From julia
 using namespace llvm;
 extern llvm::LLVMContext jl_LLVMContext;
@@ -126,9 +111,12 @@ static llvm::Type *T_prjlvalue;
 // From julia's codegen_shared.h
 enum AddressSpace {
     Generic = 0,
-    Tracked = 10, Derived = 11, CalleeRooted = 12,
+    Tracked = 10,
+    Derived = 11,
+    CalleeRooted = 12,
+    Loaded = 13,
     FirstSpecial = Tracked,
-    LastSpecial = CalleeRooted,
+    LastSpecial = Loaded,
 };
 
 #define JLCALL_CC (CallingConv::ID)36
@@ -168,10 +156,6 @@ const clang::InputKind CKind = clang::InputKind::C;
 #endif
 
 extern "C" {
-  #define TYPE_ACCESS(EX,IN)                                    \
-  JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {                          \
-    return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
-  }
 
   TYPE_ACCESS(cT_char,CharTy)
   TYPE_ACCESS(cT_cchar,CharTy)
@@ -201,8 +185,7 @@ extern "C" {
 }
 
 // Utilities
-clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx)
-{
+clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx) {
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
     return sm.getLocForStartOfFile(sm.getMainFileID());
 }
@@ -214,45 +197,44 @@ extern "C" {
 extern void jl_error(const char *str);
 
 // For initialization.jl
-JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname)
-{
-  clang::SrcMgr::CharacteristicKind flag = (clang::SrcMgr::CharacteristicKind)kind;
-  clang::FileManager &fm = Cxx->CI->getFileManager();
-  clang::Preprocessor &pp = Cxx->Parser->getPreprocessor();
-  auto dir = fm.getDirectory(dirname);
-  if (dir == NULL)
-    std::cout << "WARNING: Could not add directory " << dirname << " to clang search path!\n";
-  else
-    pp.getHeaderSearchInfo().AddSearchPath(clang::DirectoryLookup(dir,flag,isFramework),flag == clang::SrcMgr::C_System || flag == clang::SrcMgr::C_ExternCSystem);
+JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework, const char *dirname) {
+    clang::SrcMgr::CharacteristicKind flag = (clang::SrcMgr::CharacteristicKind)kind;
+    clang::FileManager &fm = Cxx->CI->getFileManager();
+    clang::Preprocessor &pp = Cxx->Parser->getPreprocessor();
+    auto dir = fm.getDirectory(dirname);
+    if (dir == NULL)
+        std::cout << "WARNING: Could not add directory " << dirname << " to clang search path!\n";
+    else
+        pp.getHeaderSearchInfo().AddSearchPath(clang::DirectoryLookup(dir,flag,isFramework),flag == clang::SrcMgr::C_System || flag == clang::SrcMgr::C_ExternCSystem);
 }
 
-JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx)
-{
+JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx) {
     return Cxx->CI->getLangOpts().CPlusPlus == 0 &&
            Cxx->CI->getLangOpts().ObjC1 == 0 &&
            Cxx->CI->getLangOpts().ObjC2 == 0;
 }
 
-JL_DLLEXPORT int _cxxparse(CxxInstance *Cxx)
-{
+// Parse everything until the end of the currently entered source file
+// Return 1 if the file was successfully parsed (i.e. no error occurred)
+JL_DLLEXPORT int _cxxparse(CxxInstance *Cxx) {
     clang::Sema &S = Cxx->CI->getSema();
     clang::ASTConsumer *Consumer = &S.getASTConsumer();
 
     clang::Parser::DeclGroupPtrTy ADecl;
 
     while (!Cxx->Parser->ParseTopLevelDecl(ADecl)) {
-      // If we got a null return and something *was* parsed, ignore it.  This
-      // is due to a top-level semicolon, an action override, or a parse error
-      // skipping something.
-      if (ADecl && !Consumer->HandleTopLevelDecl(ADecl.get()))
-        return 0;
+        // If we got a null return and something *was* parsed, ignore it.
+        // This is due to a top-level semicolon, an action override, or
+        // a parse error skipping something.
+        if (ADecl && !Consumer->HandleTopLevelDecl(ADecl.get()))
+            return 0;
     }
 
-    S.DefineUsedVTables();
-    S.PerformPendingInstantiations(false);
-    Cxx->CGM->Release();
+    S.DefineUsedVTables();  // define all of the vtables that have been used in this translation unit and reference any virtual members used by those vtables
+    S.PerformPendingInstantiations();  // performs template instantiation for all implicit template instantiations we have seen until this point
+    Cxx->CGM->Release();  // finalize LLVM code generation
     Cxx->CI->getDiagnostics().Reset();
-    Cxx->CI->getDiagnostics().setSuppressSystemWarnings(true);
+    Cxx->CI->getDiagnostics().setSuppressSystemWarnings(true);  // mask warnings that come from system headers.
 
     return 1;
 }
