@@ -16,25 +16,6 @@
 #define _OS_WINDOWS_
 #endif
 
-#if defined(_CPU_X86_64_)
-#  define _P64
-#elif defined(_CPU_X86_)
-#  define _P32
-#elif defined(_OS_WINDOWS_)
-/* Not sure how to determine pointer size on Windows running ARM. */
-#  if _WIN64
-#    define _P64
-#  else
-#    define _P32
-#  endif
-#elif __SIZEOF_POINTER__ == 8
-#    define _P64
-#elif __SIZEOF_POINTER__ == 4
-#    define _P32
-#else
-#  error pointer size not known for your platform / compiler
-#endif
-
 #ifdef _OS_WINDOWS_
 #define STDCALL __stdcall
 # ifdef LIBRARY_EXPORTS
@@ -48,6 +29,7 @@
 #endif
 
 #include <iostream>
+
 #include <cstdlib>
 #ifdef _OS_WINDOWS_
 #include <windows.h>
@@ -154,39 +136,53 @@ struct CxxInstance {
 };
 const clang::InputKind CKind = clang::InputKind::C;
 
+#if defined(_CPU_X86_64_)
+#  define _P64
+#elif defined(_CPU_X86_)
+#  define _P32
+#elif defined(_OS_WINDOWS_)
+/* Not sure how to determine pointer size on Windows running ARM. */
+#  if _WIN64
+#    define _P64
+#  else
+#    define _P32
+#  endif
+#elif __SIZEOF_POINTER__ == 8
+#    define _P64
+#elif __SIZEOF_POINTER__ == 4
+#    define _P32
+#else
+#  error pointer size not known for your platform / compiler
+#endif
+
 extern "C" {
 
-#define TYPE_ACCESS(EX,IN)                                          \
-    JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {          \
-        return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
-    }
-
-TYPE_ACCESS(cT_char,CharTy)
-TYPE_ACCESS(cT_cchar,CharTy)
-TYPE_ACCESS(cT_int1,BoolTy)
-TYPE_ACCESS(cT_int8,SignedCharTy)
-TYPE_ACCESS(cT_uint8,UnsignedCharTy)
-TYPE_ACCESS(cT_int16,ShortTy)
-TYPE_ACCESS(cT_uint16,UnsignedShortTy)
-TYPE_ACCESS(cT_int32,IntTy)
-TYPE_ACCESS(cT_uint32,UnsignedIntTy)
-#ifdef _P32
-TYPE_ACCESS(cT_int64,LongLongTy)
-TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
-#else
-TYPE_ACCESS(cT_int64,LongTy)
-TYPE_ACCESS(cT_uint64,UnsignedLongTy)
-#endif
-TYPE_ACCESS(cT_size,getSizeType())
-TYPE_ACCESS(cT_int128,Int128Ty)
-TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
-TYPE_ACCESS(cT_complex64,FloatComplexTy)
-TYPE_ACCESS(cT_complex128,DoubleComplexTy)
-TYPE_ACCESS(cT_float32,FloatTy)
-TYPE_ACCESS(cT_float64,DoubleTy)
-TYPE_ACCESS(cT_void,VoidTy)
-TYPE_ACCESS(cT_wint,WIntTy)
-}  // extern "C"
+  TYPE_ACCESS(cT_char,CharTy)
+  TYPE_ACCESS(cT_cchar,CharTy)
+  TYPE_ACCESS(cT_int1,BoolTy)
+  TYPE_ACCESS(cT_int8,SignedCharTy)
+  TYPE_ACCESS(cT_uint8,UnsignedCharTy)
+  TYPE_ACCESS(cT_int16,ShortTy)
+  TYPE_ACCESS(cT_uint16,UnsignedShortTy)
+  TYPE_ACCESS(cT_int32,IntTy)
+  TYPE_ACCESS(cT_uint32,UnsignedIntTy)
+// #ifdef _P32
+  TYPE_ACCESS(cT_int64,LongLongTy)
+  TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
+// #else
+//   TYPE_ACCESS(cT_int64,LongTy)
+//   TYPE_ACCESS(cT_uint64,UnsignedLongTy)
+// #endif
+  TYPE_ACCESS(cT_size,getSizeType())
+  TYPE_ACCESS(cT_int128,Int128Ty)
+  TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
+  TYPE_ACCESS(cT_complex64,FloatComplexTy)
+  TYPE_ACCESS(cT_complex128,DoubleComplexTy)
+  TYPE_ACCESS(cT_float32,FloatTy)
+  TYPE_ACCESS(cT_float64,DoubleTy)
+  TYPE_ACCESS(cT_void,VoidTy)
+  TYPE_ACCESS(cT_wint,WIntTy)
+}
 
 // Utilities
 clang::SourceLocation getTrivialSourceLocation(CxxInstance *Cxx) {

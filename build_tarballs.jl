@@ -93,9 +93,6 @@ cmake .. ${CMAKE_FLAGS}
 make -j${nproc} VERBOSE=1
 make install VERBOSE=1
 
-mkdir -p ${prefix}/usr/lib
-ln -s ${prefix}/lib/* ${prefix}/usr/lib/
-
 mkdir -p ${prefix}/src/clang-6.0.1/include
 mkdir -p ${prefix}/src/llvm-6.0.1/include
 mkdir -p ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include
@@ -104,6 +101,7 @@ mkdir -p ${prefix}/build/llvm-6.0.1/include
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/tools/clang/include/* ${prefix}/src/clang-6.0.1/include/
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/include/* ${prefix}/src/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
+cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/lib/
 cp -r $WORKSPACE/srcdir/LLVMBinary/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
@@ -112,6 +110,7 @@ make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir/LLVMBinary BA
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
+    cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
     mkdir -p ${prefix}/mingw/sys-root/include
     cp -r /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/include/* ${prefix}/mingw/include/
@@ -119,6 +118,7 @@ if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
 fi
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 32 ]]; then
+    cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
     mkdir -p ${prefix}/mingw/sys-root/include
     cp -r /opt/i686-w64-mingw32/i686-w64-mingw32/include/* ${prefix}/mingw/include/
@@ -129,7 +129,7 @@ fi
 
 platforms = [
         # BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+         BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
