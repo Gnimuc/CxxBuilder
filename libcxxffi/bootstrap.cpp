@@ -182,13 +182,13 @@ extern "C" {
   TYPE_ACCESS(cT_uint16,UnsignedShortTy)
   TYPE_ACCESS(cT_int32,IntTy)
   TYPE_ACCESS(cT_uint32,UnsignedIntTy)
-#ifdef _P32
+// #ifdef _P32
   TYPE_ACCESS(cT_int64,LongLongTy)
   TYPE_ACCESS(cT_uint64,UnsignedLongLongTy)
-#else
-  TYPE_ACCESS(cT_int64,LongTy)
-  TYPE_ACCESS(cT_uint64,UnsignedLongTy)
-#endif
+// #else
+//   TYPE_ACCESS(cT_int64,LongTy)
+//   TYPE_ACCESS(cT_uint64,UnsignedLongTy)
+// #endif
   TYPE_ACCESS(cT_size,getSizeType())
   TYPE_ACCESS(cT_int128,Int128Ty)
   TYPE_ACCESS(cT_uint128,UnsignedInt128Ty)
