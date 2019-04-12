@@ -156,6 +156,10 @@ const clang::InputKind CKind = clang::InputKind::C;
 #endif
 
 extern "C" {
+  #define TYPE_ACCESS(EX,IN)                                          \
+      JL_DLLEXPORT const clang::Type *EX(CxxInstance *Cxx) {          \
+          return Cxx->CI->getASTContext().IN.getTypePtrOrNull();      \
+      }
 
   TYPE_ACCESS(cT_char,CharTy)
   TYPE_ACCESS(cT_cchar,CharTy)
