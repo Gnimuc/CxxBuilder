@@ -13,8 +13,17 @@
 #define __STDC_CONSTANT_MACROS
 
 #include <iostream>
-#include <dlfcn.h>
 #include <cstdlib>
+
+#if defined(_WIN32) || defined(_WIN64)
+#define _OS_WINDOWS_
+#endif
+
+#ifdef _OS_WINDOWS_
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
 
 #ifdef NDEBUG
 #define OLD_NDEBUG
@@ -124,6 +133,25 @@
 
 #ifndef OLD_NDEBUG
 #undef NDEBUG
+#endif
+
+#if defined(_CPU_X86_64_)
+#  define _P64
+#elif defined(_CPU_X86_)
+#  define _P32
+#elif defined(_OS_WINDOWS_)
+/* Not sure how to determine pointer size on Windows running ARM. */
+#  if _WIN64
+#    define _P64
+#  else
+#    define _P32
+#  endif
+#elif __SIZEOF_POINTER__ == 8
+#    define _P64
+#elif __SIZEOF_POINTER__ == 4
+#    define _P32
+#else
+#  error pointer size not known for your platform / compiler
 #endif
 
 // From julia
@@ -1498,16 +1526,26 @@ static void finish_clang_init(C, bool EmitPCH, const char *PCHBuffer, size_t PCH
             clang::vfs::getRealFileSystem()));
         llvm::IntrusiveRefCntPtr<clang::vfs::InMemoryFileSystem> IMFS(
           new clang::vfs::InMemoryFileSystem);
+#ifdef _OS_WINDOWS_
+        IMFS->addFile("C:/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
+          StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
+        ));
+#else
         IMFS->addFile("/Cxx.pch", PCHTime, llvm::MemoryBuffer::getMemBuffer(
           StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false
         ));
+#endif
         Overlay->pushOverlay(IMFS);
         Cxx->CI->setVirtualFileSystem(Overlay);
     }
     Cxx->CI->createFileManager();
     Cxx->CI->createSourceManager(Cxx->CI->getFileManager());
     if (PCHBuffer) {
+#ifdef _OS_WINDOWS_
+        Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "C:/Cxx.pch";
+#else
         Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
+#endif
     }
     Cxx->CI->createPreprocessor(clang::TU_Prefix);
     Cxx->CI->createASTContext();
@@ -1564,7 +1602,11 @@ static void finish_clang_init(C, bool EmitPCH, const char *PCHBuffer, size_t PCH
             Cxx->CI->getASTConsumer().GetASTDeserializationListener();
         bool DeleteDeserialListener = false;
         Cxx->CI->createPCHExternalASTSource(
+#ifdef _OS_WINDOWS_
+          "C:/Cxx.pch",
+#else
           "/Cxx.pch",
+#endif
           Cxx->CI->getPreprocessorOpts().DisablePCHValidation,
           Cxx->CI->getPreprocessorOpts().AllowPCHWithCompilerErrors, DeserialListener,
           DeleteDeserialListener);
@@ -1590,7 +1632,11 @@ static void finish_clang_init(C, bool EmitPCH, const char *PCHBuffer, size_t PCH
     pp.enableIncrementalProcessing();
 
     clang::SourceManager &sm = Cxx->CI->getSourceManager();
+#ifdef _OS_WINDOWS_
+    const char *fname = PCHBuffer ? "C:/Cxx.cpp" : "C:/Cxx.h";
+#else
     const char *fname = PCHBuffer ? "/Cxx.cpp" : "/Cxx.h";
+#endif
     const clang::FileEntry *MainFile = Cxx->CI->getFileManager().getVirtualFile(fname, 0, time(0));
     sm.overrideFileContents(MainFile, llvm::MemoryBuffer::getNewMemBuffer(0, fname));
     sm.setMainFileID(sm.createFileID(MainFile, clang::SourceLocation(), clang::SrcMgr::C_User));
@@ -1604,8 +1650,12 @@ static void finish_clang_init(C, bool EmitPCH, const char *PCHBuffer, size_t PCH
 
     _cxxparse(Cxx);
 
-    f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))
-      dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
+#ifdef _OS_WINDOWS_
+    f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))GetProcAddress(GetModuleHandle(0), "julia_type_to_llvm");
+#else
+    f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
+#endif
+
     assert(f_julia_type_to_llvm);
 }
 
@@ -1648,7 +1698,7 @@ JL_DLLEXPORT size_t getPCHSize(C) {
   return Cxx->PCHGenerator->getPCHSize();
 }
 
-void decouple_pch(C, char *data)
+JL_DLLEXPORT void decouple_pch(C, char *data)
 {
   Cxx->PCHGenerator->getPCHData(data);
   Cxx->JCodeGen = new JuliaCodeGenerator(Cxx);
@@ -3079,8 +3129,8 @@ JL_DLLEXPORT void *getTypeName(C, void *Ty)
 extern void jl_error(const char *str);
 
 #include "unwind.h"
-void __attribute__((noreturn)) (*process_cxx_exception)(uint64_t exceptionClass, _Unwind_Exception* unwind_exception);
-_Unwind_Reason_Code __cxxjl_personality_v0
+JL_DLLEXPORT void __attribute__((noreturn)) (*process_cxx_exception)(uint64_t exceptionClass, _Unwind_Exception* unwind_exception);
+JL_DLLEXPORT _Unwind_Reason_Code __cxxjl_personality_v0
                     (int version, _Unwind_Action actions, uint64_t exceptionClass,
                      _Unwind_Exception* unwind_exception, _Unwind_Context* context)
 {
@@ -3150,6 +3200,9 @@ JL_DLLEXPORT bool isDCComplete(clang::DeclContext *DC) {
   return (!clang::isa<clang::TagDecl>(DC) || DC->isDependentContext() || clang::cast<clang::TagDecl>(DC)->isCompleteDefinition() || clang::cast<clang::TagDecl>(DC)->isBeingDefined());
 }
 
+} // extern "C"
+
+#ifndef _OS_WINDOWS_
 #include <signal.h>
 static void jl_unblock_signal(int sig)
 {
@@ -3182,6 +3235,5 @@ JL_DLLEXPORT void InstallSIGABRTHandler(void *exception)
     abort(); // hah
   }
 }
-}
-
-}
+} // extern "C"
+#endif // _OS_WINDOWS_
