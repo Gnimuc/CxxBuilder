@@ -33,7 +33,9 @@ sources = [
     # Add pre-built LLVM tarballs
     "LLVM",
     # Add libcxxffi source
-    "libcxxffi"
+    "libcxxffi",
+    # Add dlfcn-win32 source
+    "dlfcn"
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
@@ -80,6 +82,15 @@ script = script_setup * raw"""
 # build libcxxffi
 cd $WORKSPACE/srcdir/
 
+if [[ ${target} == *mingw32* ]]; then
+    cd $WORKSPACE/srcdir/dlfcn-win32
+    mkdir build && cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain
+    make -j${nproc} VERBOSE=1
+    make install VERBOSE=1
+fi
+
+cd $WORKSPACE/srcdir/
 mkdir LLVMBinary
 tar -C LLVMBinary --strip-components=1 -xf *LLVM*.tar.gz
 
@@ -134,7 +145,7 @@ platforms = [
         # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
         # BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+        BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
 	# BinaryProvider.FreeBSD(:x86_64; compiler_abi=CompilerABI(:gcc7)),
     ]
 

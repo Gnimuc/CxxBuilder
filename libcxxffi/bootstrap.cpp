@@ -13,17 +13,13 @@
 #define __STDC_CONSTANT_MACROS
 
 #include <iostream>
+#include <dlfcn.h>
 #include <cstdlib>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define _OS_WINDOWS_
 #endif
 
-#ifdef _OS_WINDOWS_
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
 
 #ifdef NDEBUG
 #define OLD_NDEBUG
@@ -1653,11 +1649,7 @@ static void finish_clang_init(C, bool EmitPCH, const char *PCHBuffer, size_t PCH
 
     _cxxparse(Cxx);
 
-#ifdef _OS_WINDOWS_
-    f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))GetProcAddress(GetModuleHandle(0), "julia_type_to_llvm");
-#else
     f_julia_type_to_llvm = (llvm::Type *(*)(void *, bool *))dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
-#endif
 
     assert(f_julia_type_to_llvm);
 }
