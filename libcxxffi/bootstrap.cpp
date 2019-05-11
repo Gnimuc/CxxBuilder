@@ -1692,7 +1692,7 @@ JL_DLLEXPORT void apply_default_abi(C)
 {
 #if defined(_GLIBCXX_USE_CXX11_ABI)
     char define[] = "#define _GLIBCXX_USE_CXX11_ABI " xstringify(_GLIBCXX_USE_CXX11_ABI);
-    cxxparse(Cxx, define);
+    cxxparse(Cxx, define, sizeof(define)-1);
 #endif
 }
 
