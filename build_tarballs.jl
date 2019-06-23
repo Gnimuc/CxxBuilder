@@ -139,15 +139,16 @@ fi
 """
 
 platforms = [
-        # BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
-        BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-	# BinaryProvider.FreeBSD(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-    ]
+	BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+	BinaryProvider.FreeBSD(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+]
+# platforms = expand_gcc_versions(platforms)
 
 # The products that we will ensure are always built
 products(prefix) = [

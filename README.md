@@ -36,9 +36,8 @@ CxxBuilder +
            + LLVM +
                   | LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz
 ```
-8. Uncomment the line `# BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),` in `build_tarballs.jl`
-9. Run `julia --color=yes build_tarballs.jl --verbose`
-10. Find the binary in the `products` folder
+8. Run `julia --color=yes build_tarballs.jl --verbose --debug x86_64-linux-gnu-gcc7`
+9. Find the binary in the `products` folder
 
 ### Build for MacOS
 1. Download Julia-v1.1 binary: https://julialang-s3.julialang.org/bin/mac/x64/1.1/julia-1.1.0-mac64.dmg
@@ -72,9 +71,8 @@ CxxBuilder +
            + LLVM +
                   | LLVM.v6.0.1.x86_64-apple-darwin14-gcc7.tar.gz
 ```
-8. Uncomment the line `# BinaryProvider.MacOS(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),` in `build_tarballs.jl`
-9. Run `julia --color=yes build_tarballs.jl --verbose`
-10. Find the binary in the `products` folder
+8. Run `julia --color=yes build_tarballs.jl --verbose --debug x86_64-apple-darwin14-gcc7`
+9. Find the binary in the `products` folder
 
 ### Build for Windows-x86_64
 1. Download Julia-v1.1 binary: https://julialang-s3.julialang.org/bin/winnt/x64/1.1/julia-1.1.1-win64.exe
@@ -116,6 +114,5 @@ CxxBuilder +
            + LLVM +
                   | LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz
 ```
-10. Uncomment the line `# BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),` in `build_tarballs.jl`
-11. Run `julia --color=yes build_tarballs.jl --verbose`
-12. Find the binary in the `products` folder
+10. Run `julia --color=yes build_tarballs.jl --verbose --debug x86_64-w64-mingw32-gcc7`
+11. Find the binary in the `products` folder
