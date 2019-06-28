@@ -1,9 +1,4 @@
 .DS_Store
 build
 products
-LLVM
-JuliaBinary
-JuliaSource
-dlfcn
 downloads
-

@@ -51,9 +51,10 @@ endif()
 if(WIN32)
     find_package(dlfcn-win32 REQUIRED)
     set(CMAKE_DL_LIBS dlfcn-win32::dl)
-		message(STATUS "CMAKE_DL_LIBS: " ${CMAKE_DL_LIBS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	message(STATUS "CMAKE_DL_LIBS: " ${CMAKE_DL_LIBS})
 endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 set(CXXJL_TARGET cxxffi)
 
@@ -65,12 +66,12 @@ target_include_directories(${CXXJL_TARGET} PUBLIC ${CLANG_INCLUDE_DIRS} ${CLANG_
 target_compile_options(${CXXJL_TARGET} PUBLIC -DLLVM_NDEBUG -DLIBRARY_EXPORTS -fno-rtti)
 
 set(CLANG_LIBS clangFrontendTool
-	       			 clangBasic
+	       	   clangBasic
                clangLex
                clangDriver
                clangFrontend
                clangParse
-	             clangAST
+	           clangAST
                clangASTMatchers
                clangSema
                clangAnalysis
@@ -79,7 +80,7 @@ set(CLANG_LIBS clangFrontendTool
                clangRewrite
                clangSerialization
                clangStaticAnalyzerCheckers
-	             clangStaticAnalyzerCore
+	           clangStaticAnalyzerCore
                clangStaticAnalyzerFrontend
                clangTooling
                clangToolingCore
@@ -96,14 +97,14 @@ message(STATUS "LLVM_LIBS: " ${LLVM_LIBS})
 if(APPLE)
     target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
     target_link_libraries(${CXXJL_TARGET} -Xlinker -all_load ${CLANG_LIBS})
+elseif(WIN32)
+	target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
+	target_link_libraries(${CXXJL_TARGET} ${CMAKE_DL_LIBS})
+	target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive -lversion)
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS true)
 else()
-	  target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
-    if(WIN32)
-			  target_link_libraries(${CXXJL_TARGET} ${CMAKE_DL_LIBS})
-        target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive -lversion)
-    else()
-        target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive)
-    endif()
+	target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
+    target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive)
 endif()
 
 install(TARGETS ${CXXJL_TARGET}

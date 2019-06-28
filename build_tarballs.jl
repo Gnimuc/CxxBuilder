@@ -26,16 +26,20 @@ sources = [
     "http://releases.llvm.org/$(llvm_ver)/lld-$(llvm_ver).src.tar.xz" =>
     "e706745806921cea5c45700e13ebe16d834b5e3c0b7ad83bf6da1f28b0634e11",
     "patches",
-    # Julia source
-    "JuliaSource",
-    # Add pre-built Julia tarballs
-    "JuliaBinary",
-    # Add pre-built LLVM tarballs
-    "LLVM",
-    # Add libcxxffi source
-    "libcxxffi",
-    # Add dlfcn-win32 source
-    "dlfcn"
+	# julia source
+    "https://github.com/JuliaLang/julia/releases/download/v1.1.1/julia-1.1.1.tar.gz" =>
+	"0ea5143b663426720ff0b320a9c46f6e967a2fad3f1026eda3ac46eeeb406942",
+	# dlfcn-win32 source
+    "https://github.com/dlfcn-win32/dlfcn-win32/archive/v1.2.0.tar.gz" =>
+	"f18a412e84d8b701e61a78252411fe8c72587f52417c1ef21ca93604de1b9c55",
+    # libcxxffi source
+	"libcxxffi",
+    # julia binary
+    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.1.1/julia-1.1.1-x86_64-w64-mingw32.tar.gz" =>
+	"9446377e8fd7b143f2ed1ea7ec6470d25e463b89828b728b226d9e221e5506a5",
+    # LLVM binary
+    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-5%2Bnowasm/LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz" =>
+	"998a1932884121f15d7d5b2e75fb977695a4d448dd3888c10a18aafa83faf8c9",
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
@@ -91,13 +95,23 @@ if [[ ${target} == *mingw32* ]]; then
 fi
 
 cd $WORKSPACE/srcdir/
+
+mkdir juliasrc
+tar -C juliasrc --strip-components=1 -xzf julia-1.1.1.tar.gz
+
+mkdir dlfcn-win32
+tar -C dlfcn-win32 --strip-components=1 -xzf dlfcn-win32-1.2.0.tar.gz
+
 mkdir LLVMBinary
-tar -C LLVMBinary --strip-components=1 -xf *LLVM*.tar.gz
+tar -C LLVMBinary --strip-components=1 -xzf *LLVM*.tar.gz
+
+mkdir juliabin
+tar -C juliabin --strip-components=1 -xzf julia-1.1.1-*.tar.gz
 
 cd $WORKSPACE/srcdir/
 mkdir build && cd build
 CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/juliasrc"
 CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
 CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir/LLVMBinary"
 cmake .. ${CMAKE_FLAGS}
