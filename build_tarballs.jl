@@ -87,7 +87,7 @@ script = script_setup * raw"""
 cd $WORKSPACE/srcdir/
 
 if [[ ${target} == *mingw32* ]]; then
-    cd $WORKSPACE/srcdir/dlfcn-win32
+    cd $WORKSPACE/srcdir/dlfcn-win32-1.2.0
     mkdir build && cd build
     cmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain
     make -j${nproc} VERBOSE=1
@@ -95,25 +95,11 @@ if [[ ${target} == *mingw32* ]]; then
 fi
 
 cd $WORKSPACE/srcdir/
-
-mkdir juliasrc
-tar -C juliasrc --strip-components=1 -xzf julia-1.1.1.tar.gz
-
-mkdir dlfcn-win32
-tar -C dlfcn-win32 --strip-components=1 -xzf dlfcn-win32-1.2.0.tar.gz
-
-mkdir LLVMBinary
-tar -C LLVMBinary --strip-components=1 -xzf *LLVM*.tar.gz
-
-mkdir juliabin
-tar -C juliabin --strip-components=1 -xzf julia-1.1.1-*.tar.gz
-
-cd $WORKSPACE/srcdir/
 mkdir build && cd build
 CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/juliasrc"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
 CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir/LLVMBinary"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
 cmake .. ${CMAKE_FLAGS}
 make -j${nproc} VERBOSE=1
 make install VERBOSE=1
@@ -125,17 +111,17 @@ mkdir -p ${prefix}/build/clang-6.0.1/include
 mkdir -p ${prefix}/build/llvm-6.0.1/include
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/tools/clang/include/* ${prefix}/src/clang-6.0.1/include/
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/include/* ${prefix}/src/llvm-6.0.1/include/
-cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
-cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/lib/
-cp -r $WORKSPACE/srcdir/LLVMBinary/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
+cp -r $WORKSPACE/srcdir/include/* ${prefix}/build/llvm-6.0.1/include/
+cp -r $WORKSPACE/srcdir/lib/* ${prefix}/lib/
+cp -r $WORKSPACE/srcdir/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
 cd $WORKSPACE/srcdir
-make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir/LLVMBinary BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
+make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
-    cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
+    cp -r $WORKSPACE/srcdir/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
     mkdir -p ${prefix}/mingw/sys-root/include
     cp -r /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/include/* ${prefix}/mingw/include/
@@ -143,7 +129,7 @@ if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
 fi
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 32 ]]; then
-    cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
+    cp -r $WORKSPACE/srcdir/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
     mkdir -p ${prefix}/mingw/sys-root/include
     cp -r /opt/i686-w64-mingw32/i686-w64-mingw32/include/* ${prefix}/mingw/include/
