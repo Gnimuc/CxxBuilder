@@ -81,7 +81,7 @@ for f in $WORKSPACE/srcdir/llvm_patches/*.patch; do
 done
 """
 
-# Next, we will Bash recipe for building across all platforms
+# Next, build libcxxffi
 script = script_setup * raw"""
 # build libcxxffi
 cd $WORKSPACE/srcdir/
@@ -94,16 +94,25 @@ if [[ ${target} == *mingw32* ]]; then
     make install VERBOSE=1
 fi
 
-cd $WORKSPACE/srcdir/
-mkdir build && cd build
-CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
-cmake .. ${CMAKE_FLAGS}
-make -j${nproc} VERBOSE=1
-make install VERBOSE=1
+# use CMake on all platforms except Windows
+if [[ "${target}" == *linux* ]] || [[ "${target}" == *apple* ]] || [[ "${target}" == *freebsd* ]]; then
+	mkdir build && cd build
+	CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
+	cmake .. ${CMAKE_FLAGS}
+	make -j${nproc} VERBOSE=1
+	make install VERBOSE=1
+fi
 
+# use Make on Windows
+if [[ ${target} == *mingw32* ]]; then
+    make -j${nproc} VERBOSE=1 -f Windows.Makefile JULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1 JULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin LLVMBUILDER_PREFIX=$WORKSPACE/srcdir
+    make install VERBOSE=1
+fi
+
+# copy LLVM/Clang assets
 mkdir -p ${prefix}/src/clang-6.0.1/include
 mkdir -p ${prefix}/src/llvm-6.0.1/include
 mkdir -p ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include
@@ -116,10 +125,12 @@ cp -r $WORKSPACE/srcdir/lib/* ${prefix}/lib/
 cp -r $WORKSPACE/srcdir/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
+# generate clang_constants.jl
 cd $WORKSPACE/srcdir
 make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
 
+# copy mingw headers
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
     cp -r $WORKSPACE/srcdir/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
