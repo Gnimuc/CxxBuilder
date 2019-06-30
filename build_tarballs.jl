@@ -94,16 +94,6 @@ if [[ ${target} == *mingw32* ]]; then
     make install VERBOSE=1
 fi
 
-cd $WORKSPACE/srcdir/
-mkdir build && cd build
-CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
-cmake .. ${CMAKE_FLAGS}
-make -j${nproc} VERBOSE=1
-make install VERBOSE=1
-
 mkdir -p ${prefix}/src/clang-6.0.1/include
 mkdir -p ${prefix}/src/llvm-6.0.1/include
 mkdir -p ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include
@@ -115,6 +105,19 @@ cp -r $WORKSPACE/srcdir/include/* ${prefix}/build/llvm-6.0.1/include/
 cp -r $WORKSPACE/srcdir/lib/* ${prefix}/lib/
 cp -r $WORKSPACE/srcdir/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
+cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/include/
+
+cd $WORKSPACE/srcdir/
+mkdir build && cd build
+CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=${prefix}"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DDLFCN_WIN32_PREFIX=$WORKSPACE/srcdir/dlfcn-win32-1.2.0"
+#CMAKE_FLAGS="${CMAKE_FLAGS} -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE"
+cmake .. ${CMAKE_FLAGS}
+make -j${nproc} VERBOSE=1
+make install VERBOSE=1
 
 cd $WORKSPACE/srcdir
 make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
