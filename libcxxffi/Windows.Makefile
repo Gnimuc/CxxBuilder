@@ -11,9 +11,9 @@ LLVM_LIBS := $(JULIA_BINARY_PREFIX)/bin/LLVM.dll
 JULIA_LIB_DIRS := $(JULIA_BINARY_PREFIX)/bin
 JULIA_LIB_DIRS += $(JULIA_BINARY_PREFIX)/lib
 JULIA_LIB_DIRS += $(JULIA_BINARY_PREFIX)/lib/julia
-CLANG_LIB_DIRS := $(LLVMBUILDER_PREFIX)/lib
+CLANG_LIB_DIRS := $(LLVMBUILDER_PREFIX)/lib $(LLVMBUILDER_PREFIX)/bin
 
-LIB_DIRS := $(JULIA_LIB_DIRS) $(CLANG_LIB_DIRS)
+LIB_DIRS := $(JULIA_LIB_DIRS) $(CLANG_LIB_DIRS) $(WORKSPACE)/destdir/lib $(WORKSPACE)/destdir/bin
 LIBS = $(addprefix -L,$(LIB_DIRS))
 
 CLANG_LIBS := clangFrontendTool clangBasic clangLex clangDriver clangFrontend clangParse
@@ -23,26 +23,22 @@ CLANG_LIBS += clangStaticAnalyzerCore clangStaticAnalyzerFrontend clangTooling c
 CLANG_LIBS += clangCodeGen clangARCMigrate clangFormat
 LINKED_LIBS = $(addprefix -l,$(CLANG_LIBS))
 
-INCLUDE_DIRS := $(JULIA_SOURCE_INCLUDE_DIRS) $(JULIA_INCLUDE_DIRS) $(CLANG_SOURCE_INCLUDE_DIRS) $(CLANG_INCLUDE_DIRS)
+INCLUDE_DIRS := $(JULIA_SOURCE_INCLUDE_DIRS) $(JULIA_INCLUDE_DIRS) $(CLANG_SOURCE_INCLUDE_DIRS) $(CLANG_INCLUDE_DIRS) $(WORKSPACE)/destdir/include
 INCLUDES = $(addprefix -I,$(INCLUDE_DIRS))
 
 DEFS := -DLLVM_NDEBUG -DLIBRARY_EXPORTS
 FLAGS = -std=c++11 -fno-rtti -fPIC -O0 -g
 
-all: usr/lib/libcxxffi.dll
+all: build/libcxxffi.dll
 
 build:
 	@mkdir -p $(CURDIR)/build
 
-build/bootstrap.o: bootstrap.cpp $(LIB_DEPENDENCY) | build
+build/bootstrap.o: bootstrap.cpp | build
 	$(CXX) $(DEFS) $(FLAGS) $(INCLUDES) -c bootstrap.cpp -o $@
 
-build/libcxxffi.dll: build/bootstrap.o $(LIB_DEPENDENCY) | build
-	$(CXX) -shared -fPIC $(LIBS) -l$(JULIA_LIBS) -l$(LLVM_LIBS) -o $@ -Wl,--whole-archive $(LINKED_LIBS) -Wl,--no-whole-archive $< -lversion
+build/libcxxffi.dll: build/bootstrap.o | build
+	$(CXX) -shared -fPIC $(LIBS) -o $@ -ljulia -lLLVM -Wl,--export-all-symbols -lclang -Wl,--whole-archive $(LINKED_LIBS) -Wl,--no-whole-archive $< -llibdl -lversion
 
 destdir/bin:
 	@mkdir -p /workspace/destdir/bin
-
-install: build/libcxxffi.dll
-	cp -f $(CURDIR)/build/bootstrap.o /workspace/destdir/bin/
-	cp -f $(CURDIR)/build/libcxxffi.dll /workspace/destdir/bin/

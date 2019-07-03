@@ -108,8 +108,9 @@ fi
 
 # use Make on Windows
 if [[ ${target} == *mingw32* ]]; then
+    cd $WORKSPACE/srcdir/
     make -j${nproc} VERBOSE=1 -f Windows.Makefile JULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1 JULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin LLVMBUILDER_PREFIX=$WORKSPACE/srcdir
-    make install VERBOSE=1
+    cp -r ./build/* /workspace/destdir/bin/
 fi
 
 # copy LLVM/Clang assets
