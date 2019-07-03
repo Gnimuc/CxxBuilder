@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(cxxjl)
 
+if(WIN32)
+	message(FATAL_ERROR "Binary-build for Windows using CMake is NOT supported, please use `Windows.Makefile` instead.")
+endif()
+
 if(JULIA_SOURCE_PREFIX)
     set(JULIA_SOURCE_INCLUDE_DIRS ${JULIA_SOURCE_PREFIX}/src/support)
     message(STATUS "JULIA_SOURCE_INCLUDE_DIRS: " ${JULIA_SOURCE_INCLUDE_DIRS})
@@ -51,9 +55,10 @@ endif()
 if(WIN32)
     find_package(dlfcn-win32 REQUIRED)
     set(CMAKE_DL_LIBS dlfcn-win32::dl)
-		message(STATUS "CMAKE_DL_LIBS: " ${CMAKE_DL_LIBS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	message(STATUS "CMAKE_DL_LIBS: " ${CMAKE_DL_LIBS})
 endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti")
 
 set(CXXJL_TARGET cxxffi)
 
@@ -62,15 +67,15 @@ link_directories(${CLANG_LIB_DIRS} ${JULIA_LIB_DIRS})
 add_library(${CXXJL_TARGET} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap.cpp)
 
 target_include_directories(${CXXJL_TARGET} PUBLIC ${CLANG_INCLUDE_DIRS} ${CLANG_SOURCE_INCLUDE_DIRS} ${JULIA_INCLUDE_DIRS} ${JULIA_SOURCE_INCLUDE_DIRS})
-target_compile_options(${CXXJL_TARGET} PUBLIC -DLLVM_NDEBUG -DLIBRARY_EXPORTS -fno-rtti)
+target_compile_options(${CXXJL_TARGET} PUBLIC -DLLVM_NDEBUG -DLIBRARY_EXPORTS)
 
 set(CLANG_LIBS clangFrontendTool
-	       			 clangBasic
+	       	   clangBasic
                clangLex
                clangDriver
                clangFrontend
                clangParse
-	             clangAST
+	           clangAST
                clangASTMatchers
                clangSema
                clangAnalysis
@@ -79,7 +84,7 @@ set(CLANG_LIBS clangFrontendTool
                clangRewrite
                clangSerialization
                clangStaticAnalyzerCheckers
-	             clangStaticAnalyzerCore
+	           clangStaticAnalyzerCore
                clangStaticAnalyzerFrontend
                clangTooling
                clangToolingCore
@@ -97,13 +102,8 @@ if(APPLE)
     target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
     target_link_libraries(${CXXJL_TARGET} -Xlinker -all_load ${CLANG_LIBS})
 else()
-	  target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
-    if(WIN32)
-			  target_link_libraries(${CXXJL_TARGET} ${CMAKE_DL_LIBS})
-        target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive -lversion)
-    else()
-        target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive)
-    endif()
+	target_link_libraries(${CXXJL_TARGET} ${JULIA_LIBS} ${LLVM_LIBS})
+    target_link_libraries(${CXXJL_TARGET} -Wl,--whole-archive ${CLANG_LIBS} -Wl,--no-whole-archive)
 endif()
 
 install(TARGETS ${CXXJL_TARGET}

@@ -26,16 +26,20 @@ sources = [
     "http://releases.llvm.org/$(llvm_ver)/lld-$(llvm_ver).src.tar.xz" =>
     "e706745806921cea5c45700e13ebe16d834b5e3c0b7ad83bf6da1f28b0634e11",
     "patches",
-    # Julia source
-    "JuliaSource",
-    # Add pre-built Julia tarballs
-    "JuliaBinary",
-    # Add pre-built LLVM tarballs
-    "LLVM",
-    # Add libcxxffi source
-    "libcxxffi",
-    # Add dlfcn-win32 source
-    "dlfcn"
+	# julia source
+    "https://github.com/JuliaLang/julia/releases/download/v1.1.1/julia-1.1.1.tar.gz" =>
+	"0ea5143b663426720ff0b320a9c46f6e967a2fad3f1026eda3ac46eeeb406942",
+	# dlfcn-win32 source
+    "https://github.com/dlfcn-win32/dlfcn-win32/archive/v1.2.0.tar.gz" =>
+	"f18a412e84d8b701e61a78252411fe8c72587f52417c1ef21ca93604de1b9c55",
+    # libcxxffi source
+	"libcxxffi",
+    # julia binary
+    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.1.1/julia-1.1.1-x86_64-w64-mingw32.tar.gz" =>
+	"9446377e8fd7b143f2ed1ea7ec6470d25e463b89828b728b226d9e221e5506a5",
+    # LLVM binary
+    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-5%2Bnowasm/LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz" =>
+	"998a1932884121f15d7d5b2e75fb977695a4d448dd3888c10a18aafa83faf8c9",
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
@@ -77,33 +81,39 @@ for f in $WORKSPACE/srcdir/llvm_patches/*.patch; do
 done
 """
 
-# Next, we will Bash recipe for building across all platforms
+# Next, build libcxxffi
 script = script_setup * raw"""
 # build libcxxffi
 cd $WORKSPACE/srcdir/
 
 if [[ ${target} == *mingw32* ]]; then
-    cd $WORKSPACE/srcdir/dlfcn-win32
+    cd $WORKSPACE/srcdir/dlfcn-win32-1.2.0
     mkdir build && cd build
     cmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain
     make -j${nproc} VERBOSE=1
     make install VERBOSE=1
 fi
 
-cd $WORKSPACE/srcdir/
-mkdir LLVMBinary
-tar -C LLVMBinary --strip-components=1 -xf *LLVM*.tar.gz
+# use CMake on all platforms except Windows
+if [[ "${target}" == *linux* ]] || [[ "${target}" == *apple* ]] || [[ "${target}" == *freebsd* ]]; then
+	mkdir build && cd build
+	CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
+	cmake .. ${CMAKE_FLAGS}
+	make -j${nproc} VERBOSE=1
+	make install VERBOSE=1
+fi
 
-cd $WORKSPACE/srcdir/
-mkdir build && cd build
-CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
-CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir/LLVMBinary"
-cmake .. ${CMAKE_FLAGS}
-make -j${nproc} VERBOSE=1
-make install VERBOSE=1
+# use Make on Windows
+if [[ ${target} == *mingw32* ]]; then
+    cd $WORKSPACE/srcdir/
+    make -j${nproc} VERBOSE=1 -f Windows.Makefile JULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1 JULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin LLVMBUILDER_PREFIX=$WORKSPACE/srcdir
+    cp -r ./build/* /workspace/destdir/bin/
+fi
 
+# copy LLVM/Clang assets
 mkdir -p ${prefix}/src/clang-6.0.1/include
 mkdir -p ${prefix}/src/llvm-6.0.1/include
 mkdir -p ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include
@@ -111,17 +121,19 @@ mkdir -p ${prefix}/build/clang-6.0.1/include
 mkdir -p ${prefix}/build/llvm-6.0.1/include
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/tools/clang/include/* ${prefix}/src/clang-6.0.1/include/
 cp -r $WORKSPACE/srcdir/llvm-6.0.1.src/include/* ${prefix}/src/llvm-6.0.1/include/
-cp -r $WORKSPACE/srcdir/LLVMBinary/include/* ${prefix}/build/llvm-6.0.1/include/
-cp -r $WORKSPACE/srcdir/LLVMBinary/lib/* ${prefix}/lib/
-cp -r $WORKSPACE/srcdir/LLVMBinary/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
+cp -r $WORKSPACE/srcdir/include/* ${prefix}/build/llvm-6.0.1/include/
+cp -r $WORKSPACE/srcdir/lib/* ${prefix}/lib/
+cp -r $WORKSPACE/srcdir/lib/clang/6.0.1/include/* ${prefix}/build/clang-6.0.1/lib/clang/6.0.1/include/
 cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 
+# generate clang_constants.jl
 cd $WORKSPACE/srcdir
-make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir/LLVMBinary BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
+make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
 cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
 
+# copy mingw headers
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
-    cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
+    cp -r $WORKSPACE/srcdir/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
     mkdir -p ${prefix}/mingw/sys-root/include
     cp -r /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/include/* ${prefix}/mingw/include/
@@ -129,7 +141,7 @@ if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
 fi
 
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 32 ]]; then
-    cp -r $WORKSPACE/srcdir/LLVMBinary/bin/* ${prefix}/bin
+    cp -r $WORKSPACE/srcdir/bin/* ${prefix}/bin
     mkdir -p ${prefix}/mingw/include
     mkdir -p ${prefix}/mingw/sys-root/include
     cp -r /opt/i686-w64-mingw32/i686-w64-mingw32/include/* ${prefix}/mingw/include/
@@ -139,15 +151,16 @@ fi
 """
 
 platforms = [
-        # BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-        # BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
-        BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-	# BinaryProvider.FreeBSD(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-    ]
+	BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
+    BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+	BinaryProvider.FreeBSD(:x86_64; compiler_abi=CompilerABI(:gcc7)),
+]
+# platforms = expand_gcc_versions(platforms)
 
 # The products that we will ensure are always built
 products(prefix) = [
