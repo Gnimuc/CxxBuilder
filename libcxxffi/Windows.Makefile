@@ -38,7 +38,7 @@ build/bootstrap.o: bootstrap.cpp | build
 	$(CXX) $(DEFS) $(FLAGS) $(INCLUDES) -c bootstrap.cpp -o $@
 
 build/libcxxffi.dll: build/bootstrap.o | build
-	$(CXX) -shared -fPIC $(LIBS) -o $@ -ljulia -lLLVM -Wl,--export-all-symbols -lclang -Wl,--whole-archive $(LINKED_LIBS) -Wl,--no-whole-archive $< -llibdl -lversion -Wl,-no-undefined -Wl,--enable-runtime-pseudo-reloc
+	$(CXX) -shared -fPIC $(LIBS) -o $@ -ljulia -lLLVM -Wl,--export-all-symbols -Wl,-no-undefined -Wl,--enable-runtime-pseudo-reloc -Wl,--whole-archive $(LINKED_LIBS) -Wl,--no-whole-archive $< -llibdl -lversion
 
 destdir/bin:
 	@mkdir -p /workspace/destdir/bin
