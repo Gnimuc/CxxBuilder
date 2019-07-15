@@ -1495,6 +1495,7 @@ static void set_default_clang_options(CxxInstance *Cxx, bool CCompiler, const ch
       Cxx->CI->getHeaderSearchOpts().Sysroot = SysRoot;
     Cxx->CI->getCodeGenOpts().DwarfVersion = 2;
     Cxx->CI->getCodeGenOpts().StackRealignment = 1;
+    Cxx->CI->getCodeGenOpts().EmulatedTLS = 1;
     Cxx->CI->getTargetOpts().Triple = target.normalize();
     Cxx->CI->getTargetOpts().CPU = CPU == NULL ? llvm::sys::getHostCPUName() : CPU;
     StringMap< bool > ActiveFeatures;
