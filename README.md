@@ -10,7 +10,7 @@ Pre-built binaries can be found in the release page: https://github.com/Gnimuc/C
 ```
 # julia binary
 "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.1.1/julia-1.1.1-x86_64-linux-gnu-gcc7.tar.gz" =>
-"???",
+"052c1f15be28a4bf79ce367229d0e3e14e536cedd7e77e119252a46d0c73dcc4",
 # LLVM binary
 "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-5%2Bnowasm/LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz" =>
 "6fca2fedc5ae4ead8b2fd62d863e2a556075d4d7de8b8c66cc8feeea6dc33851",
