@@ -27,7 +27,7 @@ sources = [
     "e706745806921cea5c45700e13ebe16d834b5e3c0b7ad83bf6da1f28b0634e11",
     "patches",
 	# julia source
-    "https://github.com/JuliaLang/julia/releases/download/v1.1.1/julia-1.1.1.tar.gz" =>
+    "https://github.com/JuliaLang/julia/releases/download/v1.3.0/julia-1.3.0.tar.gz" =>
 	"0ea5143b663426720ff0b320a9c46f6e967a2fad3f1026eda3ac46eeeb406942",
 	# dlfcn-win32 source
     "https://github.com/dlfcn-win32/dlfcn-win32/archive/v1.2.0.tar.gz" =>
@@ -35,11 +35,10 @@ sources = [
     # libcxxffi source
 	"libcxxffi",
     # julia binary
-    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.1.1/julia-1.1.1-x86_64-w64-mingw32.tar.gz" =>
-	"9446377e8fd7b143f2ed1ea7ec6470d25e463b89828b728b226d9e221e5506a5",
+    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-linux-gnu.tar.gz" => "44099e27a3d9ebdaf9d67bfdaf745c3899654c24877c76cbeff9cade5ed79139",
     # LLVM binary
-    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-5%2Bnowasm/LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz" =>
-	"998a1932884121f15d7d5b2e75fb977695a4d448dd3888c10a18aafa83faf8c9",
+    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz" =>
+"f2c335eb912720a5b3318f909eda1650973043beb033dfb3adc0f7d150b91bf6",
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
@@ -98,7 +97,7 @@ fi
 if [[ "${target}" == *linux* ]] || [[ "${target}" == *apple* ]] || [[ "${target}" == *freebsd* ]]; then
 	mkdir build && cd build
 	CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
-	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1"
+	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.3.0"
 	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
 	CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
 	cmake .. ${CMAKE_FLAGS}
@@ -109,7 +108,7 @@ fi
 # use Make on Windows
 if [[ ${target} == *mingw32* ]]; then
     cd $WORKSPACE/srcdir/
-    make -j${nproc} VERBOSE=1 -f Windows.Makefile JULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.1.1 JULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin LLVMBUILDER_PREFIX=$WORKSPACE/srcdir
+    make -j${nproc} VERBOSE=1 -f Windows.Makefile JULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.3.0 JULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin LLVMBUILDER_PREFIX=$WORKSPACE/srcdir
     cp -r ./build/* /workspace/destdir/bin/
 fi
 
