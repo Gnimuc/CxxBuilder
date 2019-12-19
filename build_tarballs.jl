@@ -128,7 +128,7 @@ cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 # generate clang_constants.jl
 cd $WORKSPACE/srcdir
 make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
-cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
+cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/
 
 # copy mingw headers
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
