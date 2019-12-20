@@ -35,10 +35,10 @@ sources = [
     # libcxxffi source
 	"libcxxffi",
     # julia binary
-    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-linux-gnu.tar.gz" => "44099e27a3d9ebdaf9d67bfdaf745c3899654c24877c76cbeff9cade5ed79139",
+    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-w64-mingw32.tar.gz" => "c7b2db68156150d0e882e98e39269301d7bf56660f4fc2e38ed2734a7a8d1551",
     # LLVM binary
-    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz" =>
-"f2c335eb912720a5b3318f909eda1650973043beb033dfb3adc0f7d150b91bf6",
+    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz" =>
+"74811cb50b41ac40bc69548811063ae595ea5ec8f77108e9a2a2f7c22196376f",
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
