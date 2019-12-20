@@ -28,17 +28,17 @@ sources = [
     "patches",
 	# julia source
     "https://github.com/JuliaLang/julia/releases/download/v1.3.0/julia-1.3.0.tar.gz" =>
-	"0ea5143b663426720ff0b320a9c46f6e967a2fad3f1026eda3ac46eeeb406942",
+	"5e1bfa62b99921ec8f437a31e834802d8d357ab679611ed336bd6e214ea0ce75",
 	# dlfcn-win32 source
     "https://github.com/dlfcn-win32/dlfcn-win32/archive/v1.2.0.tar.gz" =>
 	"f18a412e84d8b701e61a78252411fe8c72587f52417c1ef21ca93604de1b9c55",
     # libcxxffi source
 	"libcxxffi",
     # julia binary
-    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-linux-gnu.tar.gz" => "44099e27a3d9ebdaf9d67bfdaf745c3899654c24877c76cbeff9cade5ed79139",
+    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-w64-mingw32.tar.gz" => "c7b2db68156150d0e882e98e39269301d7bf56660f4fc2e38ed2734a7a8d1551",
     # LLVM binary
-    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz" =>
-"f2c335eb912720a5b3318f909eda1650973043beb033dfb3adc0f7d150b91bf6",
+    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz" =>
+"74811cb50b41ac40bc69548811063ae595ea5ec8f77108e9a2a2f7c22196376f",
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
@@ -88,7 +88,7 @@ cd $WORKSPACE/srcdir/
 if [[ ${target} == *mingw32* ]]; then
     cd $WORKSPACE/srcdir/dlfcn-win32-1.2.0
     mkdir build && cd build
-    cmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain
+    cmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=$CMAKE_TARGET_TOOLCHAIN
     make -j${nproc} VERBOSE=1
     make install VERBOSE=1
 fi
@@ -96,7 +96,7 @@ fi
 # use CMake on all platforms except Windows
 if [[ "${target}" == *linux* ]] || [[ "${target}" == *apple* ]] || [[ "${target}" == *freebsd* ]]; then
 	mkdir build && cd build
-	CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=/opt/$target/$target.toolchain"
+	CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=$CMAKE_TARGET_TOOLCHAIN"
 	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_SOURCE_PREFIX=$WORKSPACE/srcdir/julia-1.3.0"
 	CMAKE_FLAGS="${CMAKE_FLAGS} -DJULIA_BINARY_PREFIX=$WORKSPACE/srcdir/juliabin"
 	CMAKE_FLAGS="${CMAKE_FLAGS} -DLLVMBUILDER_PREFIX=$WORKSPACE/srcdir"
@@ -128,7 +128,7 @@ cp -r ${prefix}/build/llvm-6.0.1/include/* ${prefix}/build/clang-6.0.1/include/
 # generate clang_constants.jl
 cd $WORKSPACE/srcdir
 make -f GenerateConstants.Makefile BASE_LLVM_BIN=$WORKSPACE/srcdir BASE_JULIA_BIN=$WORKSPACE/srcdir/juliabin BASE_JULIA_SRC=$WORKSPACE/srcdir/julia LLVM_VERSION=6.0.1
-cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/build/
+cp $WORKSPACE/srcdir/clang_constants.jl ${prefix}/
 
 # copy mingw headers
 if [[ ${target} == *mingw32* ]] && [[ ${nbits} == 64 ]]; then
@@ -149,22 +149,12 @@ fi
 
 """
 
-platforms = [
-	BinaryProvider.Linux(:i686; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-    BinaryProvider.Linux(:x86_64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-    BinaryProvider.Linux(:aarch64; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-    BinaryProvider.Linux(:armv7l; libc=:glibc, compiler_abi=CompilerABI(:gcc7)),
-    BinaryProvider.MacOS(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-    BinaryProvider.Windows(:i686; compiler_abi=CompilerABI(:gcc7)),
-    BinaryProvider.Windows(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-	BinaryProvider.FreeBSD(:x86_64; compiler_abi=CompilerABI(:gcc7)),
-]
-# platforms = expand_gcc_versions(platforms)
+platforms = supported_platforms()
 
 # The products that we will ensure are always built
-products(prefix) = [
+products = [
     # libraries
-    LibraryProduct(prefix, "libcxxffi",  :libcxxffi)
+    LibraryProduct("libcxxffi",  :libcxxffi)
 ]
 
 build_tarballs(ARGS, "libcxxffi", v"0.0.0", sources, script, platforms, products, [])

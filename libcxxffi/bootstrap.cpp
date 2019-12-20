@@ -152,11 +152,8 @@
 
 // From julia
 using namespace llvm;
-#ifdef LLVM39
-extern llvm::LLVMContext jl_LLVMContext;
-#else
 extern llvm::LLVMContext &jl_LLVMContext;
-#endif
+
 static llvm::Type *T_pvalue_llvmt;
 static llvm::Type *T_pjlvalue;
 static llvm::Type *T_prjlvalue;
@@ -1784,10 +1781,10 @@ JL_DLLEXPORT void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *state)
     Cxx->CGM->Release();
 
     // Set all functions and globals to external linkage (MCJIT needs this ugh)
-    //for(Module::global_iterator I = jl_Module->global_begin(),
-    //        E = jl_Module->global_end(); I != E; ++I) {
-    //    I->setLinkage(llvm::GlobalVariable::ExternalLinkage);
-    //}
+    auto &jl_Module = Cxx->CGM->getModule();
+    for(auto I = jl_Module.global_begin(), E = jl_Module.global_end(); I != E; ++I) {
+      I->setLinkage(llvm::GlobalVariable::ExternalLinkage);
+    }
 
     Function *F = Cxx->CGF->CurFn;
 
