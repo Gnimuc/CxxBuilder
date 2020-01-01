@@ -34,11 +34,11 @@ sources = [
 	"f18a412e84d8b701e61a78252411fe8c72587f52417c1ef21ca93604de1b9c55",
     # libcxxffi source
 	"libcxxffi",
-    # julia binary
-    "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-w64-mingw32.tar.gz" => "c7b2db68156150d0e882e98e39269301d7bf56660f4fc2e38ed2734a7a8d1551",
+	"https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-linux-gnu.tar.gz" =>
+	"44099e27a3d9ebdaf9d67bfdaf745c3899654c24877c76cbeff9cade5ed79139",
     # LLVM binary
-    "https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-w64-mingw32-gcc7.tar.gz" =>
-"74811cb50b41ac40bc69548811063ae595ea5ec8f77108e9a2a2f7c22196376f",
+	"https://github.com/staticfloat/LLVMBuilder/releases/download/v6.0.1-7%2Bnowasm/LLVM.v6.0.1.x86_64-linux-gnu-gcc7.tar.gz" =>
+	"f2c335eb912720a5b3318f909eda1650973043beb033dfb3adc0f7d150b91bf6",
 ]
 
 # Since we kind of do this LLVM setup twice, this is the shared setup start:
@@ -157,4 +157,4 @@ products = [
     LibraryProduct("libcxxffi",  :libcxxffi)
 ]
 
-build_tarballs(ARGS, "libcxxffi", v"0.0.0", sources, script, platforms, products, [])
+build_tarballs(ARGS, "libcxxffi", v"0.0.0", sources, script, platforms, products, [], preferred_gcc_version=v"7")
